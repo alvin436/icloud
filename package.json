@@ -1,24 +1,18 @@
 {
-  "name": "apple-phishing-system",
+  "name": "icloud-monitoring-server",
   "version": "1.0.0",
-  "description": "نظام متكامل لمحاكاة تسجيل دخول Apple مع لوحة تحكم متقدمة",
-  "main": "index.html",
+  "description": "Server for iCloud monitoring system",
+  "main": "server.js",
   "scripts": {
-    "start": "live-server --port=8080 --host=localhost",
-    "build": "echo 'بناء المشروع...'",
-    "test": "echo 'لا توجد اختبارات محددة'"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [
-    "apple",
-    "icloud",
-    "phishing",
-    "educational",
-    "security"
-  ],
-  "author": "Educational Purposes Only",
-  "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
   "devDependencies": {
-    "live-server": "^1.2.2"
+    "nodemon": "^3.0.1"
   }
 }
